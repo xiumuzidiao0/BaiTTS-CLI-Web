@@ -1,4 +1,4 @@
-# BaiTTS-CLI-rs
+# BaiTTS-CLI-Web
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![Rust](https://img.shields.io/badge/rust-1.89.0-orange.svg)](https://www.rust-lang.org/)
