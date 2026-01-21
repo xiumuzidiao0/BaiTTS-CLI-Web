@@ -117,3 +117,10 @@ pub fn convert_files_to_utf8(files_to_convert: &[EncodingInfo]) -> Result<()> {
     }
     Ok(())
 }
+
+pub fn sanitize_filename(name: &str) -> String {
+    let invalid_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '#'];
+    name.chars()
+        .map(|c| if invalid_chars.contains(&c) { '_' } else { c })
+        .collect()
+}

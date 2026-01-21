@@ -1,12 +1,12 @@
 // src/api.rs
 
 use anyhow::{Context, Result, anyhow};
-use reqwest::blocking::Client;
-use serde::Deserialize;
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Voice {
     pub id: String,
     pub name: String,
@@ -33,6 +33,7 @@ struct VoicesResponse {
     data: VoicesData,
 }
 
+#[derive(Clone)]
 pub struct ApiClient {
     client: Client,
     base_url: String,
@@ -41,20 +42,21 @@ pub struct ApiClient {
 impl ApiClient {
     pub fn new(base_url: String) -> Result<Self> {
         let client = Client::builder()
-            .timeout(Duration::from_secs(15))
+            .timeout(Duration::from_secs(30)) // 增加超时时间以处理长文本
             .build()
             .context("无法创建 HTTP 客户端")?;
         Ok(Self { client, base_url })
     }
 
-    fn send_request_with_retry<F>(&self, build_request: F) -> Result<reqwest::blocking::Response>
+    async fn send_request_with_retry<F, Fut>(&self, build_request: F) -> Result<reqwest::Response>
     where
-        F: Fn() -> Result<reqwest::blocking::Request, reqwest::Error>,
+        F: Fn() -> Fut,
+        Fut: std::future::Future<Output = Result<reqwest::Request, reqwest::Error>>,
     {
         let mut last_error = None;
         for attempt in 1..=3 {
-            let request = build_request().context("构建请求失败")?;
-            match self.client.execute(request) {
+            let request = build_request().await.context("构建请求失败")?;
+            match self.client.execute(request).await {
                 Ok(response) => {
                     if response.status().is_success() {
                         return Ok(response);
@@ -68,20 +70,21 @@ impl ApiClient {
             }
             if attempt < 3 {
                 println!("请求失败，将在 2 秒后重试... (尝试次数 {}/3)", attempt);
-                std::thread::sleep(Duration::from_secs(2));
+                tokio::time::sleep(Duration::from_secs(2)).await;
             }
         }
         Err(last_error.unwrap_or_else(|| anyhow!("未知请求错误")))
             .context("API 请求在 3 次尝试后仍然失败")
     }
 
-    pub fn list_voices(&self) -> Result<Vec<Voice>> {
+    pub async fn fetch_voices(&self) -> Result<Vec<Voice>> {
         let url = format!("{}/voices", self.base_url);
 
-        let response = self.send_request_with_retry(|| self.client.get(&url).build())?;
+        let response = self.send_request_with_retry(|| async { self.client.get(&url).build() }).await?;
 
         let parsed_response = response
             .json::<VoicesResponse>()
+            .await
             .context("解析声音列表 JSON 响应失败")?;
 
         if !parsed_response.success {
@@ -98,7 +101,7 @@ impl ApiClient {
         Ok(all_voices)
     }
 
-    pub fn generate_speech(
+    pub async fn generate_speech(
         &self,
         text: &str,
         voice: &Option<String>,
@@ -124,9 +127,9 @@ impl ApiClient {
         }
 
         let request_url = url.to_string();
-        let response = self.send_request_with_retry(|| self.client.get(&request_url).build())?;
+        let response = self.send_request_with_retry(|| async { self.client.get(&request_url).build() }).await?;
 
-        let bytes = response.bytes().context("读取音频响应体失败")?.to_vec();
+        let bytes = response.bytes().await.context("读取音频响应体失败")?.to_vec();
         Ok(bytes)
     }
 }

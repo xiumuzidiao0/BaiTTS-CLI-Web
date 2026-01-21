@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BaiTTS WebUI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root { --card-border-radius: 12px; }
+        body { background-color: #f4f6f9; padding-bottom: 40px; }
+        [data-bs-theme="dark"] body { background-color: #121212; }
+        .card { border: none; border-radius: var(--card-border-radius); box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 20px; transition: transform 0.2s; }
+        .card-header { background-color: transparent; border-bottom: 1px solid rgba(0,0,0,0.05); font-weight: 600; padding: 1rem 1.25rem; }
+        [data-bs-theme="dark"] .card-header { border-bottom-color: rgba(255,255,255,0.05); }
+        .param-label { font-weight: 500; font-size: 0.9rem; color: #6c757d; }
+        [data-bs-theme="dark"] .param-label { color: #adb5bd; }
+        #logs { height: 300px; overflow-y: auto; background: #1e1e1e; color: #00ff9d; padding: 15px; font-family: 'Consolas', monospace; border-radius: 8px; font-size: 0.85rem; }
+        .nav-tabs .nav-link { border-radius: 8px 8px 0 0; color: var(--bs-body-color); }
+        .nav-tabs .nav-link.active { font-weight: bold; }
+        .form-range::-webkit-slider-thumb { background: var(--bs-primary); }
+        .badge { font-weight: 500; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4 sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-soundwave"></i> BaiTTS <small class="text-muted fw-normal fs-6">有声书合成工具</small></a>
+            <div class="d-flex align-items-center gap-3">
+                 <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                    <i class="bi bi-gear"></i> 设置
+                 </button>
+                 <div class="form-check form-switch mb-0" title="深色模式">
+                    <input class="form-check-input" type="checkbox" id="darkModeSwitch">
+                    <label class="form-check-label" for="darkModeSwitch"><i class="bi bi-moon-stars"></i></label>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 输入内容 -->
+        <div class="card">
+            <div class="card-header bg-warning text-dark">输入内容</div>
+            <div class="card-body">
+                <ul class="nav nav-tabs mb-3" id="inputTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="text-tab" data-bs-toggle="tab" data-bs-target="#text-pane" type="button">直接文本</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="file-tab" data-bs-toggle="tab" data-bs-target="#file-pane" type="button">本地文件路径</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-pane" type="button">上传文件</button>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="text-pane">
+                        <textarea id="textContent" class="form-control" rows="5" placeholder="在此输入要朗读的文本..."></textarea>
+                        <div class="mt-2 d-flex gap-2 align-items-center">
+                            <div class="flex-grow-1">
+                                <label class="form-label visually-hidden">保存文件名</label>
+                                <input type="text" id="outputName" class="form-control" placeholder="保存文件名 (可选，默认为 web_task)">
+                            </div>
+                            <button class="btn btn-secondary" id="btnPreview">🎧 试听</button>
+                            <button class="btn btn-outline-primary" id="btnDownloadPreview" style="display:none;">⬇️ 下载</button>
+                        </div>
+                        <audio id="audioPreview" controls style="display:none; width: 100%; margin-top: 10px;"></audio>
+                    </div>
+                    <div class="tab-pane fade" id="file-pane">
+                        <div class="alert alert-info">请输入服务器(本机)上的绝对路径。支持 .txt, .epub</div>
+                        <input type="text" id="filePath" class="form-control" placeholder="D:\books\story.epub">
+                    </div>
+                    <div class="tab-pane fade" id="upload-pane">
+                        <div class="alert alert-info">直接从您的电脑上传文件进行处理。支持 .txt, .epub</div>
+                        <input type="file" id="uploadFile" class="form-control">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件管理 -->
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <span>📂 文件管理</span>
+                <div class="btn-group btn-group-sm">
+                    <input type="radio" class="btn-check" name="fmRoot" id="fmRootBook" value="book" checked>
+                    <label class="btn btn-outline-light" for="fmRootBook">书籍目录 (/book)</label>
+                    <input type="radio" class="btn-check" name="fmRoot" id="fmRootOutput" value="output">
+                    <label class="btn btn-outline-light" for="fmRootOutput">输出目录 (/output)</label>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0" id="fmBreadcrumb">
+                            <li class="breadcrumb-item active">/</li>
+                        </ol>
+                    </nav>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" id="btnFmRefresh"><i class="bi bi-arrow-clockwise"></i> 刷新</button>
+                        <button class="btn btn-sm btn-success" id="btnFmUpload" data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="bi bi-upload"></i> 上传文件</button>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 50%">名称</th>
+                                <th style="width: 15%">大小</th>
+                                <th style="width: 20%">修改时间</th>
+                                <th style="width: 15%" class="text-end">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fmFileList">
+                            <tr><td colspan="4" class="text-center text-muted">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 批量转换 -->
+        <div class="card">
+            <div class="card-header bg-info text-white">批量转换</div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    此功能会处理 Docker 卷 <code>/book</code> 内所有 <code>.txt</code> 和 <code>.epub</code> 文件，并使用上方选择的声音进行转换。音频文件将保存到 <code>/out</code> 卷。
+                    <br>请确保已通过 <code>-v /your/books:/book</code> 和 <code>-v /your/output:/out</code> 正确挂载目录。
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-warning btn-lg" id="btnBatchConvert">开始批量转换</button>
+                    <button class="btn btn-outline-success" id="btnAutoRun">🤖 开启自动检测</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 任务进度 -->
+        <div class="card" id="tasksCard" style="display: none;">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <span>任务进度</span>
+                <div>
+                    <button class="btn btn-sm btn-outline-warning me-2" onclick="retryAllFailed()">全部重试</button>
+                    <button class="btn btn-sm btn-outline-danger me-2" onclick="clearAllTasks()">清空所有</button>
+                    <button class="btn btn-sm btn-outline-light me-2" onclick="clearCompletedTasks()">清除已完成</button>
+                    <button class="btn btn-sm btn-danger" onclick="resetHistory()" title="彻底清除所有记录（包括已完成的），允许重新扫描">彻底重置</button>
+                    <span class="badge bg-light text-dark" id="taskCountBadge">0/0</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="p-2 border-bottom d-flex gap-2 align-items-center">
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" id="selectAllTasks">
+                        <label class="form-check-label" for="selectAllTasks" style="white-space: nowrap;">全选</label>
+                    </div>
+                    <select class="form-select form-select-sm" id="taskStatusFilter" style="max-width: 120px;">
+                        <option value="all">全部状态</option>
+                        <option value="pending">等待中</option>
+                        <option value="processing">进行中</option>
+                        <option value="completed">已完成</option>
+                        <option value="error">失败</option>
+                        <option value="cancelled">已取消</option>
+                    </select>
+                    <input type="text" class="form-control form-control-sm" id="taskSearchInput" placeholder="🔍 搜索文件名...">
+                    <div class="btn-group btn-group-sm" id="batchActions" style="display:none;">
+                        <button class="btn btn-outline-danger" onclick="batchCancel()">批量取消</button>
+                        <button class="btn btn-outline-warning" onclick="batchRetry()">批量重试</button>
+                    </div>
+                </div>
+                <div class="list-group list-group-flush" id="taskList" style="max-height: 300px; overflow-y: auto;">
+                    <!-- 任务列表项模板 -->
+                    <!--
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Book Name.epub</h6>
+                            <small>Processing</small>
+                        </div>
+                        <div class="progress" style="height: 5px;"><div class="progress-bar" style="width: 50%"></div></div>
+                    </div>
+                    -->
+                </div>
+            </div>
+            <div class="card-footer p-1">
+                <nav>
+                    <ul class="pagination pagination-sm justify-content-center mb-0" id="taskPagination"></ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 控制 -->
+        <div class="d-grid gap-2 mb-4 d-md-flex">
+            <button class="btn btn-primary btn-lg flex-grow-1" id="btnStart">开始合成</button>
+            <button class="btn btn-danger btn-lg flex-grow-1" id="btnStop" disabled>停止合成</button>
+        </div>
+
+        <!-- 日志 -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">运行日志</div>
+            <div class="card-body p-0">
+                <div id="logs">
+                    <div>等待操作...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 设置模态框 -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">设置</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- API 设置 -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-primary text-white">API 设置</div>
+                        <div class="card-body">
+                            <div class="input-group">
+                                <span class="input-group-text">MultiTTS API 地址</span>
+                                <input type="text" id="apiUrl" class="form-control" value="http://127.0.0.1:8774" placeholder="例如 http://192.168.1.5:8774">
+                                <button class="btn btn-success" type="button" id="btnRefreshVoices">获取声音列表</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 参数设置 -->
+                    <div class="card">
+                        <div class="card-header bg-success text-white">声音参数</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label param-label">选择声音</label>
+                                <select id="voiceSelect" class="form-select">
+                                    <option value="" disabled selected>请先获取声音列表...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label param-label">语速 (Speed): <span id="speedVal">50</span></label>
+                                    <input type="range" class="form-range" id="speed" min="0" max="100" value="50">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label param-label">音量 (Volume): <span id="volumeVal">100</span></label>
+                                    <input type="range" class="form-range" id="volume" min="0" max="100" value="100">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label param-label">音调 (Pitch): <span id="pitchVal">50</span></label>
+                                    <input type="range" class="form-range" id="pitch" min="0" max="100" value="50">
+                                </div>
+                            </div>
+
+                            <div class="row mt-3">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label param-label">并发数 (Concurrency): <span id="concurrencyVal">4</span></label>
+                                    <input type="range" class="form-range" id="concurrency" min="1" max="32" value="4">
+                                    <div class="form-text">同时处理的章节数量。设置过高可能导致 API 超时或报错。</div>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-center">
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" id="preserveStructure">
+                                        <label class="form-check-label" for="preserveStructure">保持目录结构 (Preserve Structure)</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 对话部分独立设置 -->
+                            <fieldset class="mt-3 border p-3 rounded">
+                                <legend class="w-auto px-2 fs-6 fw-bold">🗣️ 对话部分独立设置 (可选)</legend>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label param-label">对话发音人</label>
+                                    <select id="voice_dialogue_id" class="form-select">
+                                        <option value="">-- 跟随主发音人 --</option>
+                                    </select>
+                                    <div class="form-text">若不选择，则对话部分使用主发音人。</div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label class="form-label param-label">对话语速: <span id="val_speed_dialogue">50</span></label>
+                                        <input type="range" class="form-range" id="speed_dialogue" min="0" max="100" value="50">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label param-label">对话音量: <span id="val_volume_dialogue">50</span></label>
+                                        <input type="range" class="form-range" id="volume_dialogue" min="0" max="100" value="50">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label param-label">对话音调: <span id="val_pitch_dialogue">50</span></label>
+                                        <input type="range" class="form-range" id="pitch_dialogue" min="0" max="100" value="50">
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="enableLrc">
+                                        <label class="form-check-label" for="enableLrc">生成 LRC 歌词文件</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-2" id="lrcConfig" style="display: none;">
+                                <div class="col-md-6">
+                                    <label class="form-label">每行最大字符数</label>
+                                    <input type="number" class="form-control" id="lrcChars" value="15" min="10" max="100">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <label class="form-label param-label">忽略内容正则 (Ignore Regex)</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="ignoreRegex" value="\*{3,}|#{2,}" placeholder="正则表达式">
+                                        <button class="btn btn-outline-secondary" type="button" id="btnTestRegex">测试正则</button>
+                                    </div>
+                                    <div class="form-text">匹配到的内容将被删除，不进行合成。</div>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-end">
+                                <button class="btn btn-outline-secondary btn-sm" id="btnResetDefaults">↺ 恢复默认设置</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务详情模态框 -->
+    <div class="modal fade" id="taskDetailsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">任务详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="taskDetailsBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="btnCopyConfig">复制配置</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 正则测试模态框 -->
+    <div class="modal fade" id="regexTestModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">正则表达式测试</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">正则表达式</label>
+                        <input type="text" class="form-control" id="testRegexInput">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">测试文本</label>
+                        <textarea class="form-control" id="testRegexText" rows="3">这是一个测试文本***需要忽略的部分##保留的部分</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">处理结果</label>
+                        <textarea class="form-control" id="testRegexResult" rows="3" readonly></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="btnRunRegexTest">执行测试</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传文件模态框 -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">上传文件</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>上传文件到当前目录: <code id="uploadTargetDir">/</code></p>
+                    <input type="file" class="form-control" id="fmUploadInput" multiple>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="btnConfirmUpload">开始上传</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTasksMap = {};
+        let sysDefaults = { volume: 50, speed: 50, pitch: 50 };
+        
+        let selectedTaskIds = new Set();
+        let currentFilteredTasks = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let currentSearchQuery = "";
+        let currentStatusFilter = "all";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initTheme();
+            await loadInitialData();
+            loadLocalStorageSettings();
+            checkAutoRunStatus();
+            fmLoadFiles(); // 加载文件列表
+            updateTasks();
+            setInterval(updateTasks, 2000);
+        });
+
+        function initTheme() {
+            const themeSwitch = document.getElementById('darkModeSwitch');
+            const html = document.documentElement;
+            
+            // 读取保存的主题或默认为 light
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            html.setAttribute('data-bs-theme', savedTheme);
+            themeSwitch.checked = savedTheme === 'dark';
+
+            themeSwitch.addEventListener('change', () => {
+                const theme = themeSwitch.checked ? 'dark' : 'light';
+                html.setAttribute('data-bs-theme', theme);
+                localStorage.setItem('theme', theme);
+            });
+        }
+
+        function loadLocalStorageSettings() {
+            ['speed_dialogue', 'volume_dialogue', 'pitch_dialogue'].forEach(id => {
+                const val = localStorage.getItem(id);
+                if (val) {
+                    document.getElementById(id).value = val;
+                    document.getElementById('val_' + id).innerText = val;
+                }
+                document.getElementById(id).addEventListener('input', (e) => {
+                    document.getElementById('val_' + id).innerText = e.target.value;
+                    localStorage.setItem(id, e.target.value);
+                });
+            });
+
+            // Main settings
+            ['speed', 'volume', 'pitch', 'concurrency'].forEach(id => {
+                const val = localStorage.getItem(id);
+                if (val) {
+                    document.getElementById(id).value = val;
+                    document.getElementById(id + 'Val').innerText = val;
+                }
+                document.getElementById(id).addEventListener('input', (e) => {
+                    localStorage.setItem(id, e.target.value);
+                });
+            });
+            
+            const dialogVoice = document.getElementById('voice_dialogue_id');
+            dialogVoice.addEventListener('change', (e) => {
+                localStorage.setItem('voice_dialogue_id', e.target.value);
+            });
+            
+            const mainVoice = document.getElementById('voiceSelect');
+            mainVoice.addEventListener('change', (e) => {
+                localStorage.setItem('voiceSelect', e.target.value);
+            });
+
+            const preserveStructure = document.getElementById('preserveStructure');
+            const savedPreserve = localStorage.getItem('preserveStructure');
+            if (savedPreserve !== null) {
+                preserveStructure.checked = savedPreserve === 'true';
+            }
+            preserveStructure.addEventListener('change', (e) => {
+                localStorage.setItem('preserveStructure', e.target.checked);
+            });
+        }
+
+        // 参数显示同步
+        ['speed', 'volume', 'pitch', 'concurrency'].forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                document.getElementById(id + 'Val').innerText = e.target.value;
+            });
+        });
+
+        // LRC 配置显隐
+        document.getElementById('enableLrc').addEventListener('change', (e) => {
+            document.getElementById('lrcConfig').style.display = e.target.checked ? 'flex' : 'none';
+        });
+
+        // 正则测试
+        document.getElementById('btnTestRegex').addEventListener('click', () => {
+            const currentRegex = document.getElementById('ignoreRegex').value;
+            document.getElementById('testRegexInput').value = currentRegex;
+            document.getElementById('testRegexResult').value = '';
+            new bootstrap.Modal(document.getElementById('regexTestModal')).show();
+        });
+
+        document.getElementById('btnRunRegexTest').addEventListener('click', async () => {
+            const regex = document.getElementById('testRegexInput').value;
+            const text = document.getElementById('testRegexText').value;
+            
+            try {
+                const res = await fetch('/api/test_regex', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ regex, text })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('testRegexResult').value = data.result;
+                } else {
+                    document.getElementById('testRegexResult').value = "错误: " + data.error;
+                }
+            } catch (e) {
+                document.getElementById('testRegexResult').value = "网络错误: " + e;
+            }
+        });
+
+        const log = (msg) => {
+            const logs = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            logs.innerHTML += `<div>[${time}] ${msg}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        };
+        
+        function populateVoices(voices, selectElement) {
+            selectElement.innerHTML = ''; // Clear existing options
+            if (!voices || voices.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.text = "无可用声音或获取失败";
+                opt.disabled = true;
+                selectElement.appendChild(opt);
+                selectElement.value = "";
+                return;
+            }
+            
+            voices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.id;
+                opt.text = `${v.name} (${v.id})`;
+                selectElement.appendChild(opt);
+            });
+            
+            if (selectElement.id === 'voiceSelect') {
+                const savedVoice = localStorage.getItem('voiceSelect');
+                if (savedVoice) selectElement.value = savedVoice;
+            }
+            
+            log(`✅ 成功加载 ${voices.length} 个声音。`);
+            
+            // 填充对话发音人并恢复选择
+            const dialogSelect = document.getElementById('voice_dialogue_id');
+            dialogSelect.innerHTML = '<option value="">-- 跟随主发音人 --</option>';
+            voices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.id;
+                opt.text = `${v.name} (${v.id})`;
+                dialogSelect.appendChild(opt);
+            });
+            const savedDialogVoice = localStorage.getItem('voice_dialogue_id');
+            if (savedDialogVoice) dialogSelect.value = savedDialogVoice;
+        }
+
+        async function loadInitialData() {
+            log('正在加载初始配置...');
+            try {
+                const res = await fetch('/api/initial_data');
+                const data = await res.json();
+
+                if (data.api_url) {
+                    document.getElementById('apiUrl').value = data.api_url;
+                    log('▶️ 已从环境加载 API 地址。');
+                }
+
+                if (data.default_volume !== undefined) {
+                    sysDefaults.volume = data.default_volume;
+                    document.getElementById('volume').value = data.default_volume;
+                    document.getElementById('volumeVal').innerText = data.default_volume;
+                }
+                if (data.default_speed !== undefined) {
+                    sysDefaults.speed = data.default_speed;
+                    document.getElementById('speed').value = data.default_speed;
+                    document.getElementById('speedVal').innerText = data.default_speed;
+                }
+                if (data.default_pitch !== undefined) {
+                    sysDefaults.pitch = data.default_pitch;
+                    document.getElementById('pitch').value = data.default_pitch;
+                    document.getElementById('pitchVal').innerText = data.default_pitch;
+                }
+
+                if (data.voices && data.voices.length > 0) {
+                    const voiceSelect = document.getElementById('voiceSelect');
+                    populateVoices(data.voices, voiceSelect);
+                } else if (data.api_url) {
+                    log('⏳ API 地址已加载，正在尝试获取声音列表...');
+                    document.getElementById('btnRefreshVoices').click();
+                } else {
+                    log('💡 未从环境加载配置，请手动输入 API 地址。')
+                }
+
+            } catch (e) {
+                log('❌ 加载初始配置失败: ' + e);
+            }
+        }
+
+        // 任务轮询
+        async function updateTasks() {
+            try {
+                const res = await fetch('/api/tasks');
+                const tasks = await res.json();
+                const list = document.getElementById('taskList');
+                const card = document.getElementById('tasksCard');
+                
+                currentTasksMap = {}; // 重置映射
+                
+                card.style.display = 'block';
+                list.innerHTML = '';
+
+                if (tasks.length === 0) {
+                    list.innerHTML = '<div class="list-group-item text-center text-muted p-3">暂无任务记录</div>';
+                    document.getElementById('taskCountBadge').innerText = '0/0';
+                } else {
+                    let completed = 0;
+                    
+                    // 过滤
+                    const filteredTasks = tasks.filter(t => {
+                        const matchesSearch = t.file_name.toLowerCase().includes(currentSearchQuery.toLowerCase());
+                        const matchesStatus = currentStatusFilter === 'all' || t.status === currentStatusFilter;
+                        return matchesSearch && matchesStatus;
+                    });
+                    currentFilteredTasks = filteredTasks;
+                    
+                    // 分页
+                    const totalPages = Math.ceil(filteredTasks.length / itemsPerPage) || 1;
+                    if (currentPage > totalPages) currentPage = totalPages;
+                    if (currentPage < 1) currentPage = 1;
+                    
+                    const start = (currentPage - 1) * itemsPerPage;
+                    const end = start + itemsPerPage;
+                    const pageTasks = filteredTasks.slice(start, end);
+
+                    // 统计总完成数 (基于所有任务)
+                    tasks.forEach(t => { if(t.status === 'completed') completed++; });
+                    
+                    pageTasks.forEach(t => {
+                        currentTasksMap[t.id] = t; // 存储以便详情使用
+                        
+                        let badgeClass = 'bg-secondary';
+                        if(t.status === 'processing') badgeClass = 'bg-primary';
+                        if(t.status === 'completed') badgeClass = 'bg-success';
+                        if(t.status === 'error') badgeClass = 'bg-danger';
+                        
+                        let actionBtn = '';
+                        if(t.status === 'pending' || t.status === 'processing') {
+                            actionBtn = `<button class="btn btn-sm btn-outline-danger ms-2" onclick="cancelTask('${t.id}')">取消</button>`;
+                        } else if (t.status === 'error' || t.status === 'cancelled') {
+                            actionBtn = `<button class="btn btn-sm btn-outline-warning ms-2" onclick="retryTask('${t.id}')">重试</button>`;
+                        }
+                        
+                        let etaText = '';
+                        if (t.status === 'processing' && t.eta !== null && t.eta !== undefined) {
+                            const min = Math.floor(t.eta / 60);
+                            const sec = t.eta % 60;
+                            etaText = ` | 预计剩余: ${min}分${sec}秒`;
+                        }
+
+                        const formatSize = (bytes) => {
+                            if (bytes === 0 || !bytes) return '';
+                            const k = 1024;
+                            const sizes = ['B', 'KB', 'MB', 'GB'];
+                            const i = Math.floor(Math.log(bytes) / Math.log(k));
+                            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                        };
+
+                        const formatTime = (ts) => ts ? new Date(ts * 1000).toLocaleTimeString() : '';
+                        let timeInfo = '';
+                        if (t.start_time) timeInfo += `<span class="me-2" title="开始时间">▶ ${formatTime(t.start_time)}</span>`;
+                        if (t.end_time) timeInfo += `<span title="结束时间">⏹ ${formatTime(t.end_time)}</span>`;
+
+                        const isChecked = selectedTaskIds.has(t.id) ? 'checked' : '';
+                        const percent = t.total > 0 ? Math.round((t.current / t.total) * 100) : 0;
+                        
+                        const item = document.createElement('div');
+                        item.className = 'list-group-item';
+                        item.innerHTML = `
+                            <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                                <div class="d-flex align-items-center text-truncate" style="max-width: 60%;">
+                                    <input type="checkbox" class="form-check-input me-2 task-checkbox" value="${t.id}" ${isChecked} onchange="toggleTaskSelection('${t.id}')" onclick="event.stopPropagation()">
+                                    <span style="cursor: pointer; text-decoration: underline; color: var(--bs-link-color);" 
+                                         title="点击查看配置详情" onclick="showTaskDetails('${t.id}')">
+                                        ${t.file_name}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="badge ${badgeClass}">${t.status}</span>
+                                    ${actionBtn}
+                                </div>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar ${badgeClass}" role="progressbar" style="width: ${percent}%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center" style="font-size: 0.75rem; color: #666;">
+                                <span>${t.current} / ${t.total} 章节${etaText}</span>
+                                <span class="text-muted" style="font-size: 0.7rem;">${timeInfo}</span>
+                                <span class="badge bg-info text-dark" style="font-weight: normal; display: ${t.size ? 'inline-block' : 'none'}">${formatSize(t.size)}</span>
+                                <span>${percent}%</span>
+                            </div>
+                        `;
+                        list.appendChild(item);
+                    });
+                    document.getElementById('taskCountBadge').innerText = `${completed}/${tasks.length}`;
+                    
+                    // 渲染分页控件
+                    renderPagination(totalPages);
+                    updateBatchUI();
+                }
+            } catch(e) {
+                console.error("Fetch tasks error", e);
+            }
+        }
+
+        function toggleTaskSelection(id) {
+            if (selectedTaskIds.has(id)) {
+                selectedTaskIds.delete(id);
+            } else {
+                selectedTaskIds.add(id);
+            }
+            updateBatchUI();
+        }
+
+        function updateBatchUI() {
+            const batchDiv = document.getElementById('batchActions');
+            batchDiv.style.display = selectedTaskIds.size > 0 ? 'inline-flex' : 'none';
+
+            const selectAllCb = document.getElementById('selectAllTasks');
+            if (currentFilteredTasks.length > 0 && currentFilteredTasks.every(t => selectedTaskIds.has(t.id))) {
+                selectAllCb.checked = true;
+                selectAllCb.indeterminate = false;
+            } else if (currentFilteredTasks.some(t => selectedTaskIds.has(t.id))) {
+                selectAllCb.checked = false;
+                selectAllCb.indeterminate = true;
+            } else {
+                selectAllCb.checked = false;
+                selectAllCb.indeterminate = false;
+            }
+        }
+
+        function renderPagination(totalPages) {
+            const pagination = document.getElementById('taskPagination');
+            pagination.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+
+            const createPageItem = (text, page, isActive = false, isDisabled = false) => {
+                const li = document.createElement('li');
+                li.className = `page-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="event.preventDefault(); changePage(${page})">${text}</a>`;
+                return li;
+            };
+
+            pagination.appendChild(createPageItem('«', currentPage - 1, false, currentPage === 1));
+            
+            // 简单分页：显示当前页和总页数
+            const infoLi = document.createElement('li');
+            infoLi.className = 'page-item disabled';
+            infoLi.innerHTML = `<span class="page-link text-muted">${currentPage} / ${totalPages}</span>`;
+            pagination.appendChild(infoLi);
+
+            pagination.appendChild(createPageItem('»', currentPage + 1, false, currentPage === totalPages));
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            updateTasks();
+        }
+
+        // 搜索框事件
+        document.getElementById('taskSearchInput').addEventListener('input', (e) => {
+            currentSearchQuery = e.target.value.trim();
+            currentPage = 1;
+            updateTasks();
+        });
+
+        // 状态筛选事件
+        document.getElementById('taskStatusFilter').addEventListener('change', (e) => {
+            currentStatusFilter = e.target.value;
+            currentPage = 1;
+            updateTasks();
+        });
+
+        // 全选框事件
+        document.getElementById('selectAllTasks').addEventListener('change', (e) => {
+            const checked = e.target.checked;
+            currentFilteredTasks.forEach(t => {
+                if (checked) selectedTaskIds.add(t.id);
+                else selectedTaskIds.delete(t.id);
+            });
+            updateTasks();
+        });
+
+        function showTaskDetails(id) {
+            const task = currentTasksMap[id];
+            if(!task || !task.cli_config) return;
+            
+            const c = task.cli_config;
+            const body = document.getElementById('taskDetailsBody');
+            
+            body.innerHTML = `
+                <table class="table table-sm table-bordered mb-0">
+                    <tbody>
+                        <tr><th style="width: 30%">文件名</th><td class="text-break">${task.file_name}</td></tr>
+                        <tr><th>状态</th><td>${task.status}</td></tr>
+                        <tr><th>API URL</th><td class="text-break">${c.api || '-'}</td></tr>
+                        <tr><th>主发音人</th><td>${c.voice || '-'}</td></tr>
+                        <tr><th>主参数</th><td>Vol: ${c.volume}, Spd: ${c.speed}, Pit: ${c.pitch}</td></tr>
+                        <tr><th>对话发音人</th><td>${c.voice_dialogue || '-'}</td></tr>
+                        <tr><th>对话参数</th><td>Vol: ${c.volume_dialogue||'-'}, Spd: ${c.speed_dialogue||'-'}, Pit: ${c.pitch_dialogue||'-'}</td></tr>
+                        <tr><th>LRC设置</th><td>${c.sub > 0 ? `启用 (每行${c.sub}字)` : '禁用'}</td></tr>
+                        <tr><th>完整路径</th><td class="text-break">${task.full_path || '-'}</td></tr>
+                        <tr><th>开始时间</th><td>${task.start_time ? new Date(task.start_time * 1000).toLocaleString() : '-'}</td></tr>
+                        <tr><th>结束时间</th><td>${task.end_time ? new Date(task.end_time * 1000).toLocaleString() : '-'}</td></tr>
+                        <tr><th>输出大小</th><td>${task.size ? formatSize(task.size) : '-'}</td></tr>
+                        ${task.error_msg ? `<tr><th class="text-danger">错误信息</th><td class="text-danger">${task.error_msg}</td></tr>` : ''}
+                    </tbody>
+                </table>
+            `;
+            
+            // 绑定复制按钮事件
+            document.getElementById('btnCopyConfig').onclick = () => copyTaskConfig(id);
+            
+            const modal = new bootstrap.Modal(document.getElementById('taskDetailsModal'));
+            modal.show();
+        }
+
+        function copyTaskConfig(id) {
+            const task = currentTasksMap[id];
+            if(!task || !task.cli_config) return;
+            const c = task.cli_config;
+
+            const setVal = (elemId, val) => {
+                const el = document.getElementById(elemId);
+                if(el) {
+                    el.value = (val !== undefined && val !== null) ? val : "";
+                    el.dispatchEvent(new Event('input'));
+                    el.dispatchEvent(new Event('change'));
+                }
+            };
+
+            setVal('voiceSelect', c.voice);
+            setVal('volume', c.volume);
+            setVal('speed', c.speed);
+            setVal('pitch', c.pitch);
+            setVal('concurrency', c.concurrency);
+            document.getElementById('preserveStructure').checked = c.preserve_structure || false;
+            
+            setVal('voice_dialogue_id', c.voice_dialogue);
+            setVal('volume_dialogue', c.volume_dialogue);
+            setVal('speed_dialogue', c.speed_dialogue);
+            setVal('pitch_dialogue', c.pitch_dialogue);
+
+            const enableLrc = document.getElementById('enableLrc');
+            if(enableLrc) {
+                enableLrc.checked = (c.sub > 0);
+                enableLrc.dispatchEvent(new Event('change'));
+            }
+            setVal('lrcChars', c.sub > 0 ? c.sub : 15);
+            setVal('ignoreRegex', c.ignore_regex);
+
+            bootstrap.Modal.getInstance(document.getElementById('taskDetailsModal')).hide();
+            alert("配置已成功复制到主界面！");
+        }
+
+        async function clearCompletedTasks() {
+            if(!confirm("确定要清除列表中所有已完成的任务吗？(不会删除文件)")) return;
+            try {
+                await fetch('/api/clear_completed_tasks', { method: 'POST' });
+                updateTasks(); // 立即刷新
+            } catch(e) {
+                alert("清除失败: " + e);
+            }
+        }
+
+        async function clearAllTasks() {
+            if(!confirm("⚠️ 警告：确定要清空所有任务记录吗？(不会删除已生成的文件)")) return;
+            try {
+                await fetch('/api/clear_all_tasks', { method: 'POST' });
+                updateTasks();
+            } catch(e) {
+                alert("清空失败: " + e);
+            }
+        }
+
+        async function resetHistory() {
+            if(!confirm("⚠️ 严重警告：这将清除所有任务记录（包括已完成的任务历史）。\n\n这意味着自动检测将重新扫描并处理所有文件！\n\n确定要继续吗？")) return;
+            try {
+                await fetch('/api/reset_history', { method: 'POST' });
+                updateTasks();
+            } catch(e) {
+                alert("重置失败: " + e);
+            }
+        }
+
+        async function cancelTask(id) {
+            if(!confirm("确定要取消此任务吗？")) return;
+            try {
+                await fetch('/api/cancel_task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+            } catch(e) {
+                alert("取消失败: " + e);
+            }
+        }
+
+        async function retryTask(id) {
+            if(!confirm("确定要重试此任务吗？")) return;
+            try {
+                await fetch('/api/retry_task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+            } catch(e) {
+                alert("重试失败: " + e);
+            }
+        }
+
+        async function batchCancel() {
+            if (!confirm(`确定要取消选中的 ${selectedTaskIds.size} 个任务吗？`)) return;
+            const ids = Array.from(selectedTaskIds);
+            for (const id of ids) {
+                try {
+                    await fetch('/api/cancel_task', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id })
+                    });
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+            selectedTaskIds.clear();
+            updateTasks();
+        }
+
+        async function batchRetry() {
+            if (!confirm(`确定要重试选中的 ${selectedTaskIds.size} 个任务吗？`)) return;
+            const ids = Array.from(selectedTaskIds);
+            for (const id of ids) {
+                try {
+                    await fetch('/api/retry_task', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id })
+                    });
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+            selectedTaskIds.clear();
+            updateTasks();
+        }
+
+        async function retryAllFailed() {
+            if(!confirm("确定要重试所有失败或已取消的任务吗？")) return;
+            try {
+                await fetch('/api/retry_all_failed', { method: 'POST' });
+                // 任务状态会在轮询中自动更新
+            } catch(e) {
+                alert("请求失败: " + e);
+            }
+        }
+
+        // SSE 连接
+        const eventSource = new EventSource('/api/events');
+        eventSource.onmessage = (event) => {
+            const btnStart = document.getElementById('btnStart');
+            const btnBatch = document.getElementById('btnBatchConvert');
+            const btnStop = document.getElementById('btnStop');
+
+            const restoreButtons = () => {
+                btnStart.disabled = false;
+                btnStart.innerText = "开始合成";
+                btnBatch.disabled = false;
+                btnBatch.innerText = "开始批量转换";
+                btnStop.disabled = true;
+            };
+
+            if (event.data === "__STATUS__:DONE" || event.data.startsWith("🛑 用户已手动停止")) {
+                restoreButtons();
+            }
+            log(event.data);
+        };
+        eventSource.onerror = () => {
+            log("🔌 SSE 连接断开，若无操作可忽略。将在下次任务时重连。");
+            eventSource.close();
+        };
+
+        // 恢复默认设置
+        document.getElementById('btnResetDefaults').addEventListener('click', () => {
+            if(!confirm("确定要恢复默认参数吗？")) return;
+            
+            const setInput = (id, val) => {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.value = val;
+                    // 手动触发 input 事件以更新显示数值和 localStorage
+                    el.dispatchEvent(new Event('input'));
+                }
+            };
+
+            setInput('volume', sysDefaults.volume);
+            setInput('speed', sysDefaults.speed);
+            setInput('pitch', sysDefaults.pitch);
+            setInput('concurrency', 4);
+            document.getElementById('preserveStructure').checked = false;
+
+            setInput('volume_dialogue', sysDefaults.volume);
+            setInput('speed_dialogue', sysDefaults.speed);
+            setInput('pitch_dialogue', sysDefaults.pitch);
+            
+            const dv = document.getElementById('voice_dialogue_id');
+            if(dv) {
+                dv.value = "";
+                dv.dispatchEvent(new Event('change'));
+            }
+            log("↺ 已恢复默认参数。");
+        });
+
+        // 获取声音列表
+        document.getElementById('btnRefreshVoices').addEventListener('click', async () => {
+            const apiUrl = document.getElementById('apiUrl').value;
+            if(!apiUrl) return alert("请输入 API 地址");
+            
+            log("正在获取声音列表...");
+            try {
+                const res = await fetch(`/api/voices?api_url=${encodeURIComponent(apiUrl)}`);
+                const data = await res.json();
+                
+                const select = document.getElementById('voiceSelect');
+                if(data.error) {
+                    log("❌ 错误: " + data.error);
+                    populateVoices([], select);
+                    return;
+                }
+                populateVoices(data, select);
+            } catch(e) {
+                log("❌ 网络错误: " + e);
+            }
+        });
+
+        // 停止合成
+        document.getElementById('btnStop').addEventListener('click', async () => {
+            if(!confirm("确定要停止当前任务吗？")) return;
+            try {
+                await fetch('/api/stop', { method: 'POST' });
+                log("正在发送停止请求...");
+            } catch(e) {
+                log("❌ 无法发送停止请求: " + e);
+            }
+        });
+
+        // 批量转换
+        document.getElementById('btnBatchConvert').addEventListener('click', async () => {
+            const voiceId = document.getElementById('voiceSelect').value;
+            const voiceDialogueId = document.getElementById('voice_dialogue_id').value || null;
+            
+            const volume = parseInt(document.getElementById('volume').value);
+            const speed = parseInt(document.getElementById('speed').value);
+            const pitch = parseInt(document.getElementById('pitch').value);
+            
+            const volumeDialogue = parseInt(document.getElementById('volume_dialogue').value);
+            const speedDialogue = parseInt(document.getElementById('speed_dialogue').value);
+            const pitchDialogue = parseInt(document.getElementById('pitch_dialogue').value);
+            
+            const enableLrc = document.getElementById('enableLrc').checked;
+            const lrcChars = parseInt(document.getElementById('lrcChars').value);
+            const sub = enableLrc ? lrcChars : 0;
+            const ignoreRegex = document.getElementById('ignoreRegex').value;
+            const preserveStructure = document.getElementById('preserveStructure').checked;
+
+            if (!voiceId) {
+                return alert("请先选择一个声音！");
+            }
+            if (!confirm("即将开始批量转换 /book 目录中的所有书籍，确定吗？")) {
+                return;
+            }
+
+            const btn = document.getElementById('btnBatchConvert');
+            const btnStart = document.getElementById('btnStart');
+            const btnStop = document.getElementById('btnStop');
+
+            btn.disabled = true;
+            btnStart.disabled = true;
+            btn.innerText = "批量处理中...";
+            btnStop.disabled = false;
+
+            log("▶️ 开始发送批量转换任务...");
+
+            try {
+                const res = await fetch('/api/batch_convert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        voice_id: voiceId,
+                        voice_dialogue_id: voiceDialogueId,
+                        volume: volume,
+                        speed: speed,
+                        pitch: pitch,
+                        volume_dialogue: volumeDialogue,
+                        speed_dialogue: speedDialogue,
+                        pitch_dialogue: pitchDialogue,
+                        sub: sub,
+                        preserve_structure: preserveStructure
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    log("✅ " + data.message);
+                } else {
+                    log("❌ 启动失败: " + data.message);
+                    btn.disabled = false;
+                    btnStart.disabled = false;
+                    btn.innerText = "开始批量转换";
+                    btnStop.disabled = true;
+                }
+            } catch (e) {
+                log("❌ 网络或服务器错误: " + e);
+                btn.disabled = false;
+                btnStart.disabled = false;
+                btn.innerText = "开始批量转换";
+                btnStop.disabled = true;
+            }
+        });
+
+        let isAutoRun = false;
+        async function checkAutoRunStatus() {
+            try {
+                const res = await fetch('/api/autorun/status');
+                const data = await res.json();
+                isAutoRun = data.enabled;
+                updateAutoRunButton();
+            } catch(e) { console.error(e); }
+        }
+
+        function updateAutoRunButton() {
+            const btn = document.getElementById('btnAutoRun');
+            if (isAutoRun) {
+                btn.innerText = "🤖 停止自动检测";
+                btn.classList.remove('btn-outline-success');
+                btn.classList.add('btn-success');
+            } else {
+                btn.innerText = "🤖 开启自动检测";
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-success');
+            }
+        }
+
+        document.getElementById('btnAutoRun').addEventListener('click', async () => {
+            const newState = !isAutoRun;
+            let body = { enabled: newState };
+            
+            if (newState) {
+                const voiceId = document.getElementById('voiceSelect').value;
+                if (!voiceId) return alert("请先选择一个声音！");
+                
+                body.config = {
+                    voice_id: voiceId,
+                    voice_dialogue_id: document.getElementById('voice_dialogue_id').value || null,
+                    volume: parseInt(document.getElementById('volume').value),
+                    speed: parseInt(document.getElementById('speed').value),
+                    pitch: parseInt(document.getElementById('pitch').value),
+                    volume_dialogue: parseInt(document.getElementById('volume_dialogue').value),
+                    speed_dialogue: parseInt(document.getElementById('speed_dialogue').value),
+                    pitch_dialogue: parseInt(document.getElementById('pitch_dialogue').value),
+                    sub: document.getElementById('enableLrc').checked ? parseInt(document.getElementById('lrcChars').value) : 0,
+                    ignore_regex: document.getElementById('ignoreRegex').value,
+                    preserve_structure: document.getElementById('preserveStructure').checked
+                };
+            }
+
+            try {
+                const res = await fetch('/api/autorun', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    isAutoRun = newState;
+                    updateAutoRunButton();
+                    log("✅ " + data.message);
+                } else {
+                    alert("操作失败: " + data.message);
+                }
+            } catch(e) { alert("网络错误: " + e); }
+        });
+
+        // 试听功能
+        document.getElementById('btnPreview').addEventListener('click', async () => {
+            const text = document.getElementById('textContent').value;
+            if(!text) return alert("请输入要试听的文本");
+            
+            const apiUrl = document.getElementById('apiUrl').value;
+            const voiceId = document.getElementById('voiceSelect').value;
+            if(!voiceId) return alert("请先选择声音");
+            
+            const volume = parseInt(document.getElementById('volume').value);
+            const speed = parseInt(document.getElementById('speed').value);
+            const pitch = parseInt(document.getElementById('pitch').value);
+            const ignoreRegex = document.getElementById('ignoreRegex').value;
+
+            const voiceDialogueId = document.getElementById('voice_dialogue_id').value || null;
+            const volumeDialogue = parseInt(document.getElementById('volume_dialogue').value);
+            const speedDialogue = parseInt(document.getElementById('speed_dialogue').value);
+            const pitchDialogue = parseInt(document.getElementById('pitch_dialogue').value);
+            
+            const btn = document.getElementById('btnPreview');
+            const btnDownload = document.getElementById('btnDownloadPreview');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "生成中...";
+            btnDownload.style.display = 'none';
+            
+            const audioPlayer = document.getElementById('audioPreview');
+            audioPlayer.style.display = 'none';
+            audioPlayer.pause();
+            
+            try {
+                const res = await fetch('/api/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        api_url: apiUrl,
+                        voice_id: voiceId,
+                        text_content: text,
+                        volume, speed, pitch,
+                        voice_dialogue_id: voiceDialogueId,
+                        volume_dialogue: volumeDialogue,
+                        speed_dialogue: speedDialogue,
+                        pitch_dialogue: pitchDialogue,
+                        ignore_regex: ignoreRegex
+                    })
+                });
+                
+                if(res.ok) {
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    audioPlayer.src = url;
+                    audioPlayer.style.display = 'block';
+                    audioPlayer.play();
+
+                    btnDownload.style.display = 'inline-block';
+                    btnDownload.onclick = () => {
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const filename = document.getElementById('outputName').value || 'preview_audio';
+                        a.download = filename.endsWith('.wav') ? filename : filename + '.wav';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    };
+                } else {
+                    const err = await res.json();
+                    alert("试听失败: " + (err.message || "未知错误"));
+                }
+            } catch(e) {
+                alert("网络错误: " + e);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        });
+
+        // 开始合成
+        document.getElementById('btnStart').addEventListener('click', async () => {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const voiceId = document.getElementById('voiceSelect').value;
+            const volume = parseInt(document.getElementById('volume').value);
+            const speed = parseInt(document.getElementById('speed').value);
+            const pitch = parseInt(document.getElementById('pitch').value);
+            const concurrency = parseInt(document.getElementById('concurrency').value);
+            
+            const voiceDialogueId = document.getElementById('voice_dialogue_id').value || null;
+            const volumeDialogue = parseInt(document.getElementById('volume_dialogue').value);
+            const speedDialogue = parseInt(document.getElementById('speed_dialogue').value);
+            const pitchDialogue = parseInt(document.getElementById('pitch_dialogue').value);
+            
+            const enableLrc = document.getElementById('enableLrc').checked;
+            const lrcChars = parseInt(document.getElementById('lrcChars').value);
+            const sub = enableLrc ? lrcChars : 0;
+            const ignoreRegex = document.getElementById('ignoreRegex').value;
+            
+            const isTextMode = document.getElementById('text-tab').classList.contains('active');
+            const isFileMode = document.getElementById('file-tab').classList.contains('active');
+            const isUploadMode = document.getElementById('upload-tab').classList.contains('active');
+            
+            let textContent = null;
+            let filePath = null;
+            let outputName = null;
+            let uploadFile = null;
+
+            if(isTextMode) {
+                textContent = document.getElementById('textContent').value;
+                outputName = document.getElementById('outputName').value || null;
+                if(!textContent) return alert("请输入文本");
+            } else if (isFileMode) {
+                filePath = document.getElementById('filePath').value;
+                if(!filePath) return alert("请输入文件路径");
+            } else if (isUploadMode) {
+                const fileInput = document.getElementById('uploadFile');
+                if (fileInput.files.length === 0) return alert("请选择要上传的文件");
+                uploadFile = fileInput.files[0];
+            }
+
+            if(!voiceId) return alert("请先选择声音");
+
+            const btn = document.getElementById('btnStart');
+            const btnBatch = document.getElementById('btnBatchConvert');
+            const btnStop = document.getElementById('btnStop');
+            
+            btn.disabled = true;
+            btnBatch.disabled = true;
+            btn.innerText = "处理中...";
+            btnStop.disabled = false;
+            
+            log("▶️ 开始发送合成任务...");
+
+            try {
+                let res;
+                if (isUploadMode) {
+                    const formData = new FormData();
+                    formData.append('api_url', apiUrl);
+                    formData.append('voice_id', voiceId);
+                    formData.append('volume', volume);
+                    formData.append('speed', speed);
+                    formData.append('pitch', pitch);
+                    formData.append('concurrency', concurrency);
+                    if(voiceDialogueId) formData.append('voice_dialogue_id', voiceDialogueId);
+                    formData.append('volume_dialogue', volumeDialogue);
+                    formData.append('speed_dialogue', speedDialogue);
+                    formData.append('pitch_dialogue', pitchDialogue);
+                    formData.append('file', uploadFile);
+                    formData.append('sub', sub);
+                    formData.append('ignore_regex', ignoreRegex);
+                    
+                    res = await fetch('/api/synthesize_upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    res = await fetch('/api/synthesize', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            api_url: apiUrl,
+                            voice_id: voiceId,
+                            voice_dialogue_id: voiceDialogueId,
+                            volume_dialogue: volumeDialogue,
+                            speed_dialogue: speedDialogue,
+                            pitch_dialogue: pitchDialogue,
+                            text_content: textContent,
+                            file_path: filePath,
+                            volume, speed, pitch,
+                            output_name: outputName,
+                            sub: sub,
+                            concurrency: concurrency,
+                            ignore_regex: ignoreRegex
+                        })
+                    });
+                }
+                
+                const data = await res.json();
+                if(data.success) {
+                    log("✅ " + data.message);
+                } else {
+                    log("❌ 启动失败: " + data.message);
+                    btn.disabled = false;
+                    btnBatch.disabled = false;
+                    btn.innerText = "开始合成";
+                    btnStop.disabled = true;
+                }
+            } catch(e) {
+                log("❌ 网络或服务器错误: " + e);
+                btn.disabled = false;
+                btnBatch.disabled = false;
+                btn.innerText = "开始合成";
+                btnStop.disabled = true;
+            } 
+        });
+
+        // --- 文件管理器逻辑 ---
+        let fmCurrentRoot = 'book';
+        let fmCurrentPath = '';
+
+        document.querySelectorAll('input[name="fmRoot"]').forEach(el => {
+            el.addEventListener('change', (e) => {
+                fmCurrentRoot = e.target.value;
+                fmCurrentPath = ''; // 切换根目录时重置路径
+                // 只有 book 目录允许上传
+                document.getElementById('btnFmUpload').style.display = fmCurrentRoot === 'book' ? 'inline-block' : 'none';
+                fmLoadFiles();
+            });
+        });
+
+        document.getElementById('btnFmRefresh').addEventListener('click', fmLoadFiles);
+
+        async function fmLoadFiles() {
+            const tbody = document.getElementById('fmFileList');
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">加载中...</td></tr>';
+            
+            updateBreadcrumb();
+
+            try {
+                const res = await fetch(`/api/files/list?root=${fmCurrentRoot}&path=${encodeURIComponent(fmCurrentPath)}`);
+                if (!res.ok) throw new Error("加载失败");
+                const files = await res.json();
+                
+                tbody.innerHTML = '';
+                
+                if (fmCurrentPath !== '') {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td colspan="4">
+                            <a href="#" onclick="event.preventDefault(); fmNavigateUp()" class="text-decoration-none">
+                                <i class="bi bi-arrow-return-left"></i> 返回上一级
+                            </a>
+                        </td>`;
+                    tbody.appendChild(tr);
+                }
+
+                if (files.length === 0) {
+                    tbody.innerHTML += '<tr><td colspan="4" class="text-center text-muted">空目录</td></tr>';
+                    return;
+                }
+
+                files.forEach(f => {
+                    const tr = document.createElement('tr');
+                    const icon = f.is_dir ? '<i class="bi bi-folder-fill text-warning"></i>' : '<i class="bi bi-file-earmark-text text-secondary"></i>';
+                    const size = f.is_dir ? '-' : formatSize(f.size);
+                    const date = new Date(f.modified * 1000).toLocaleString();
+                    const nameLink = f.is_dir 
+                        ? `<a href="#" onclick="event.preventDefault(); fmNavigate('${f.name}')" class="fw-bold text-decoration-none text-dark">${f.name}</a>`
+                        : f.name;
+                    
+                    const downloadBtn = !f.is_dir ? `<a href="/api/files/download?root=${fmCurrentRoot}&path=${encodeURIComponent((fmCurrentPath ? fmCurrentPath + '/' : '') + f.name)}" class="btn btn-sm btn-link p-0 me-2" title="下载"><i class="bi bi-download"></i></a>` : '';
+                    const deleteBtn = `<button class="btn btn-sm btn-link p-0 text-danger" onclick="fmDelete('${f.name}')" title="删除"><i class="bi bi-trash"></i></button>`;
+
+                    tr.innerHTML = `
+                        <td>${icon} ${nameLink}</td>
+                        <td>${size}</td>
+                        <td>${date}</td>
+                        <td class="text-end">${downloadBtn}${deleteBtn}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">加载失败: ${e.message}</td></tr>`;
+            }
+        }
+
+        function fmNavigate(dirName) {
+            fmCurrentPath = fmCurrentPath ? `${fmCurrentPath}/${dirName}` : dirName;
+            fmLoadFiles();
+        }
+
+        function fmNavigateUp() {
+            if (!fmCurrentPath) return;
+            const parts = fmCurrentPath.split('/');
+            parts.pop();
+            fmCurrentPath = parts.join('/');
+            fmLoadFiles();
+        }
+
+        function updateBreadcrumb() {
+            const bc = document.getElementById('fmBreadcrumb');
+            bc.innerHTML = `<li class="breadcrumb-item"><a href="#" onclick="event.preventDefault(); fmCurrentPath=''; fmLoadFiles();">/</a></li>`;
+            if (fmCurrentPath) {
+                const parts = fmCurrentPath.split('/');
+                let accum = '';
+                parts.forEach((p, i) => {
+                    accum = accum ? `${accum}/${p}` : p;
+                    if (i === parts.length - 1) {
+                        bc.innerHTML += `<li class="breadcrumb-item active">${p}</li>`;
+                    } else {
+                        // 闭包陷阱，这里简单处理，直接用 accum 字符串
+                        const pathRef = accum; 
+                        bc.innerHTML += `<li class="breadcrumb-item"><a href="#" onclick="event.preventDefault(); fmCurrentPath='${pathRef}'; fmLoadFiles();">${p}</a></li>`;
+                    }
+                });
+            }
+            document.getElementById('uploadTargetDir').innerText = '/' + fmCurrentPath;
+        }
+
+        async function fmDelete(name) {
+            if (!confirm(`确定要删除 "${name}" 吗？此操作不可恢复！`)) return;
+            const fullPath = fmCurrentPath ? `${fmCurrentPath}/${name}` : name;
+            try {
+                const res = await fetch('/api/files/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ root: fmCurrentRoot, path: fullPath })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    fmLoadFiles();
+                } else {
+                    alert("删除失败: " + data.message);
+                }
+            } catch (e) { alert("网络错误: " + e); }
+        }
+
+        document.getElementById('btnConfirmUpload').addEventListener('click', async () => {
+            const input = document.getElementById('fmUploadInput');
+            if (input.files.length === 0) return alert("请选择文件");
+            
+            const formData = new FormData();
+            formData.append('root', fmCurrentRoot);
+            formData.append('path', fmCurrentPath);
+            for (let i = 0; i < input.files.length; i++) {
+                formData.append('file', input.files[i]);
+            }
+
+            const btn = document.getElementById('btnConfirmUpload');
+            btn.disabled = true;
+            btn.innerText = "上传中...";
+
+            try {
+                const res = await fetch('/api/files/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                    input.value = '';
+                    fmLoadFiles();
+                } else {
+                    alert("上传失败: " + data.message);
+                }
+            } catch (e) { alert("网络错误: " + e); }
+            finally {
+                btn.disabled = false;
+                btn.innerText = "开始上传";
+            }
+        });
+
+        function formatSize(bytes) {
+            if (bytes === 0 || !bytes) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

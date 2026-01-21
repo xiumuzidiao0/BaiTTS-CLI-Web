@@ -1,0 +1,39 @@
+{
+  "2b7fddff06b76c20781bf32fa8553505": {
+    "id": "2b7fddff06b76c20781bf32fa8553505",
+    "file_name": "test.txt",
+    "full_path": "book/test.txt",
+    "status": "completed",
+    "current": 1,
+    "total": 1,
+    "error_msg": null,
+    "cli_config": {
+      "list": false,
+      "file": null,
+      "dir": null,
+      "web": false,
+      "api": "http://192.168.6.2:8774",
+      "out": "output",
+      "voice": "microsoft_zh-CN-XiaoxiaoNeural",
+      "voice_dialogue": "microsoft_zh-CN-YunxiNeural",
+      "volume_dialogue": 50,
+      "speed_dialogue": 58,
+      "pitch_dialogue": 50,
+      "volume": 50,
+      "speed": 52,
+      "pitch": 50,
+      "sub": 15,
+      "ignore_regex": "\\*{3,}|#{2,}",
+      "blacklist": null,
+      "concurrency": 4,
+      "preserve_structure": true
+    },
+    "start_time": 1768874215,
+    "end_time": 1768874218,
+    "size": 2924392,
+    "eta": 0,
+    "created_at": 1768874215799,
+    "output_path": "output/test",
+    "is_hidden": false
+  }
+}

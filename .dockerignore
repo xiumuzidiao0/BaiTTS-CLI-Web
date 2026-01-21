@@ -1,0 +1,7 @@
+.git
+.gitignore
+target/
+README.md
+GEMINI_MEMORY.md
+LICENSE
+examples/
