@@ -920,12 +920,8 @@
             });
 
             const preserveStructure = document.getElementById('preserveStructure');
-            const savedPreserve = localStorage.getItem('preserveStructure');
-            if (savedPreserve !== null) {
-                preserveStructure.checked = savedPreserve === 'true';
-            }
             preserveStructure.addEventListener('change', (e) => {
-                localStorage.setItem('preserveStructure', e.target.checked);
+                saveUserSettings();
             });
 
             loadAiDialogueSettings();
@@ -1079,6 +1075,15 @@
                 characters: aiRoles,
                 voice_pool: { entries: voicePool }
             };
+        }
+
+        async function saveUserSettings() {
+            const body = {
+                preserve_structure: document.getElementById('preserveStructure').checked,
+                enable_lrc: document.getElementById('enableLrc').checked,
+                lrc_chars: parseInt(document.getElementById('lrcChars').value) || 15,
+            };
+            try { await fetch('/api/save_settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch(e) {}
         }
 
         function showToast(msg) {
@@ -1268,7 +1273,9 @@
         // LRC 配置显隐
         document.getElementById('enableLrc').addEventListener('change', (e) => {
             document.getElementById('lrcConfig').style.display = e.target.checked ? 'flex' : 'none';
+            saveUserSettings();
         });
+        document.getElementById('lrcChars').addEventListener('change', () => saveUserSettings());
 
         // 正则测试
         document.getElementById('btnTestRegex').addEventListener('click', () => {
@@ -1394,6 +1401,17 @@
                     localStorage.setItem('aiDialogueConfig', JSON.stringify(merged));
                     if (localCfg.api_key) merged.api_key = localCfg.api_key;
                     loadAiDialogueSettingsFromConfig(merged);
+                }
+
+                // Load persisted UI settings
+                if (data.preserve_structure !== undefined) {
+                    document.getElementById('preserveStructure').checked = data.preserve_structure;
+                }
+                if (data.enable_lrc !== undefined) {
+                    document.getElementById('enableLrc').checked = data.enable_lrc;
+                }
+                if (data.lrc_chars !== undefined && data.lrc_chars > 0) {
+                    document.getElementById('lrcChars').value = data.lrc_chars;
                 }
 
             } catch (e) {

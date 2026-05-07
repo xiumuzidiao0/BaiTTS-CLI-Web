@@ -40,6 +40,9 @@ struct InitialData {
     default_speed: u8,
     default_pitch: u8,
     ai_dialogue_config: Option<AiDialogueConfig>,
+    preserve_structure: bool,
+    enable_lrc: bool,
+    lrc_chars: usize,
 }
 
 // 新增：任务状态结构体
@@ -163,6 +166,12 @@ struct ServerConfig {
     default_speed: Option<u8>,
     #[serde(default)]
     default_pitch: Option<u8>,
+    #[serde(default)]
+    preserve_structure: Option<bool>,
+    #[serde(default)]
+    enable_lrc: Option<bool>,
+    #[serde(default)]
+    lrc_chars: Option<usize>,
 }
 
 fn load_server_config() -> ServerConfig {
@@ -267,6 +276,9 @@ pub async fn start_server(port: u16, api_url: Option<String>) -> anyhow::Result<
         default_speed,
         default_pitch,
         ai_dialogue_config: None,
+        preserve_structure: saved_cfg.preserve_structure.unwrap_or(false),
+        enable_lrc: saved_cfg.enable_lrc.unwrap_or(false),
+        lrc_chars: saved_cfg.lrc_chars.unwrap_or(15),
     }));
 
     if let Some(url) = api_url {
@@ -330,6 +342,7 @@ pub async fn start_server(port: u16, api_url: Option<String>) -> anyhow::Result<
         .route("/api/ai_test", post(ai_test_handler))
         .route("/api/ai_identify_preview", post(ai_identify_preview_handler))
         .route("/api/voice_preview", post(voice_preview_handler))
+        .route("/api/save_settings", post(save_settings_handler))
         .route("/api/voice_pool/suggest", post(suggest_voice_pool_handler))
         .route("/api/allocations/list", get(list_allocations_handler))
         .route("/api/allocation/get", get(get_allocation_handler))
@@ -430,6 +443,22 @@ async fn save_ai_config_handler(
     *state.ai_dialogue_config.lock().await = config;
     log_info(&state.tx, "AI 对话分配配置已保存。".to_string());
     (StatusCode::OK, Json(ApiResponse { success: true, message: "配置已保存".to_string() })).into_response()
+}
+
+#[derive(Deserialize)]
+struct SaveSettingsRequest {
+    preserve_structure: Option<bool>,
+    enable_lrc: Option<bool>,
+    lrc_chars: Option<usize>,
+}
+
+async fn save_settings_handler(Json(req): Json<SaveSettingsRequest>) -> impl IntoResponse {
+    let mut cfg = load_server_config();
+    if let Some(v) = req.preserve_structure { cfg.preserve_structure = Some(v); }
+    if let Some(v) = req.enable_lrc { cfg.enable_lrc = Some(v); }
+    if let Some(v) = req.lrc_chars { cfg.lrc_chars = Some(v); }
+    save_server_config(&cfg);
+    (StatusCode::OK, Json(ApiResponse { success: true, message: "设置已保存".to_string() })).into_response()
 }
 
 #[derive(Deserialize)]
