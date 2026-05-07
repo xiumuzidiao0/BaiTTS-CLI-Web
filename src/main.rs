@@ -1,6 +1,7 @@
 // src/main.rs
 
 mod api;
+mod ai;
 mod args;
 mod extractor;
 mod lrc;
@@ -55,7 +56,7 @@ async fn main() -> Result<()> {
     if let Some(file_path) = &args.file {
         process::process_file(file_path, &args, &client, &blacklist_regex, |event| {
             if let process::ProcessEvent::Log(msg) = event { println!("{}", msg); }
-        }, || async { false }).await?;
+        }, || async { false }, None).await?;
     } else if let Some(dir_path) = &args.dir {
         process::process_directory(dir_path, &args, &client, &blacklist_regex, |event| {
             if let process::ProcessEvent::Log(msg) = event { println!("{}", msg); }

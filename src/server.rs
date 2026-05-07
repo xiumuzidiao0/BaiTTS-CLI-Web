@@ -20,6 +20,7 @@ use walkdir::WalkDir;
 use std::path::Component;
 
 use crate::api::{ApiClient, Voice};
+use crate::ai::{AiDialogueConfig, VoiceAllocationTable};
 use crate::args::Cli;
 use crate::process;
 use futures::stream::Stream;
@@ -38,6 +39,7 @@ struct InitialData {
     default_volume: u8,
     default_speed: u8,
     default_pitch: u8,
+    ai_dialogue_config: Option<AiDialogueConfig>,
 }
 
 // 新增：任务状态结构体
@@ -74,6 +76,7 @@ struct AppState {
     default_pitch: u8,
     autorun_config: Arc<Mutex<Option<Cli>>>,
     is_autorun: Arc<AtomicBool>,
+    ai_dialogue_config: Arc<Mutex<AiDialogueConfig>>,
 }
 
 #[derive(Deserialize)]
@@ -93,6 +96,8 @@ struct TtsRequest {
     sub: Option<usize>,
     concurrency: Option<usize>,
     ignore_regex: Option<String>,
+    #[serde(default)]
+    ai_dialogue: Option<AiDialogueConfig>,
 }
 
 #[derive(Serialize)]
@@ -120,6 +125,8 @@ struct BatchConvertRequest {
     ignore_regex: Option<String>,
     #[serde(default)]
     preserve_structure: bool,
+    #[serde(default)]
+    ai_dialogue: Option<AiDialogueConfig>,
 }
 
 #[derive(Deserialize)]
@@ -144,6 +151,41 @@ struct TestRegexResponse {
 struct AutorunRequest {
     enabled: bool,
     config: Option<BatchConvertRequest>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct ServerConfig {
+    #[serde(default)]
+    api_url: Option<String>,
+    #[serde(default)]
+    default_volume: Option<u8>,
+    #[serde(default)]
+    default_speed: Option<u8>,
+    #[serde(default)]
+    default_pitch: Option<u8>,
+}
+
+fn load_server_config() -> ServerConfig {
+    let path = data_dir().join("config.json");
+    if path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            if let Ok(cfg) = serde_json::from_str(&content) {
+                return cfg;
+            }
+        }
+    }
+    ServerConfig::default()
+}
+
+fn save_server_config(cfg: &ServerConfig) {
+    let dir = data_dir();
+    if !dir.exists() {
+        let _ = std::fs::create_dir_all(&dir);
+    }
+    let path = dir.join("config.json");
+    if let Ok(content) = serde_json::to_string_pretty(cfg) {
+        let _ = std::fs::write(path, content);
+    }
 }
 
 #[derive(Serialize)]
@@ -175,9 +217,14 @@ pub async fn start_server(port: u16, api_url: Option<String>) -> anyhow::Result<
     tracing_subscriber::fmt::init();
     let (tx, _rx) = broadcast::channel(100);
 
-    let default_volume = std::env::var("DEFAULT_VOLUME").ok().and_then(|v| v.parse().ok()).unwrap_or(50);
-    let default_speed = std::env::var("DEFAULT_SPEED").ok().and_then(|v| v.parse().ok()).unwrap_or(50);
-    let default_pitch = std::env::var("DEFAULT_PITCH").ok().and_then(|v| v.parse().ok()).unwrap_or(50);
+    let saved_cfg = load_server_config();
+    let api_url = api_url.or(saved_cfg.api_url);
+    let default_volume = std::env::var("DEFAULT_VOLUME").ok().and_then(|v| v.parse().ok())
+        .or(saved_cfg.default_volume).unwrap_or(50);
+    let default_speed = std::env::var("DEFAULT_SPEED").ok().and_then(|v| v.parse().ok())
+        .or(saved_cfg.default_speed).unwrap_or(50);
+    let default_pitch = std::env::var("DEFAULT_PITCH").ok().and_then(|v| v.parse().ok())
+        .or(saved_cfg.default_pitch).unwrap_or(50);
     let is_autorun_env = std::env::var("AUTORUN").map(|v| v.to_lowercase() == "true").unwrap_or(false);
     
     let is_autorun = Arc::new(AtomicBool::new(is_autorun_env));
@@ -205,6 +252,7 @@ pub async fn start_server(port: u16, api_url: Option<String>) -> anyhow::Result<
             concurrency: 4,
             preserve_structure: false,
             web: false,
+            ai_dialogue: AiDialogueConfig::default(),
         };
         *autorun_config.lock().await = Some(cli);
     }
@@ -218,6 +266,7 @@ pub async fn start_server(port: u16, api_url: Option<String>) -> anyhow::Result<
         default_volume,
         default_speed,
         default_pitch,
+        ai_dialogue_config: None,
     }));
 
     if let Some(url) = api_url {
@@ -240,6 +289,8 @@ pub async fn start_server(port: u16, api_url: Option<String>) -> anyhow::Result<
         });
     }
 
+    let ai_dialogue_config = Arc::new(Mutex::new(load_ai_dialogue_config()));
+
     let app_state = Arc::new(AppState {
         tx,
         task_handle: Mutex::new(None),
@@ -250,6 +301,7 @@ pub async fn start_server(port: u16, api_url: Option<String>) -> anyhow::Result<
         default_pitch,
         autorun_config: autorun_config.clone(),
         is_autorun: is_autorun.clone(),
+        ai_dialogue_config: ai_dialogue_config.clone(),
     });
 
     let app = Router::new()
@@ -274,6 +326,15 @@ pub async fn start_server(port: u16, api_url: Option<String>) -> anyhow::Result<
         .route("/api/files/upload", post(upload_file_manager_handler)) // 新增：上传文件(文件管理)
         .route("/api/preview", post(preview_handler)) // 新增预览接口
         .route("/api/test_regex", post(test_regex_handler)) // 新增：测试正则
+        .route("/api/ai_config", get(get_ai_config_handler).post(save_ai_config_handler))
+        .route("/api/ai_test", post(ai_test_handler))
+        .route("/api/ai_identify_preview", post(ai_identify_preview_handler))
+        .route("/api/voice_preview", post(voice_preview_handler))
+        .route("/api/voice_pool/suggest", post(suggest_voice_pool_handler))
+        .route("/api/allocations/list", get(list_allocations_handler))
+        .route("/api/allocation/get", get(get_allocation_handler))
+        .route("/api/allocation/generate", post(generate_allocation_handler))
+        .route("/api/allocation/update", post(update_allocation_handler))
         .route("/api/stop", post(stop_handler))
         .route("/api/events", get(sse_handler))
         .layer(DefaultBodyLimit::max(1024 * 1024 * 1024))
@@ -332,6 +393,7 @@ async fn set_autorun_handler(
                 concurrency: 4,
                 preserve_structure: config.preserve_structure,
                 web: false,
+                ai_dialogue: config.ai_dialogue.unwrap_or_default(),
             };
             *state.autorun_config.lock().await = Some(cli);
             log_info(&state.tx, "🤖 自动检测已开启，将每 10 秒扫描一次 /book 目录。".to_string());
@@ -353,6 +415,267 @@ async fn set_autorun_handler(
 async fn get_autorun_status_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let enabled = state.is_autorun.load(Ordering::Relaxed);
     Json(AutorunStatus { enabled })
+}
+
+async fn get_ai_config_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let config = state.ai_dialogue_config.lock().await;
+    Json(config.clone())
+}
+
+async fn save_ai_config_handler(
+    State(state): State<Arc<AppState>>,
+    Json(config): Json<AiDialogueConfig>,
+) -> impl IntoResponse {
+    save_ai_dialogue_config(&config);
+    *state.ai_dialogue_config.lock().await = config;
+    log_info(&state.tx, "AI 对话分配配置已保存。".to_string());
+    (StatusCode::OK, Json(ApiResponse { success: true, message: "配置已保存".to_string() })).into_response()
+}
+
+#[derive(Deserialize)]
+struct AiTestRequest {
+    api_url: String,
+    api_key: String,
+    model: String,
+}
+
+async fn ai_test_handler(Json(req): Json<AiTestRequest>) -> impl IntoResponse {
+    let start = std::time::Instant::now();
+    let api_key = crate::ai::pick_api_key(&req.api_key).unwrap_or(&req.api_key);
+    let body = serde_json::json!({
+        "model": req.model,
+        "messages": [
+            {"role": "user", "content": "Hi"}
+        ],
+        "max_tokens": 10
+    });
+
+    let client = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"success": false, "error": format!("Failed to create client: {}", e)}))
+            );
+        }
+    };
+
+    match client
+        .post(&req.api_url)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .json(&body)
+        .send()
+        .await
+    {
+        Ok(res) => {
+            let latency = start.elapsed().as_millis();
+            if res.status().is_success() {
+                (
+                    StatusCode::OK,
+                    Json(serde_json::json!({"success": true, "latency_ms": latency}))
+                )
+            } else {
+                let status = res.status().to_string();
+                let body = res.text().await.unwrap_or_default();
+                (
+                    StatusCode::OK,
+                    Json(serde_json::json!({"success": false, "error": format!("Status {}: {}", status, body.chars().take(300).collect::<String>())}))
+                )
+            }
+        }
+        Err(e) => (
+            StatusCode::OK,
+            Json(serde_json::json!({"success": false, "error": e.to_string()}))
+        ),
+    }
+}
+
+#[derive(Deserialize)]
+struct AiIdentifyPreviewRequest {
+    config: AiDialogueConfig,
+    dialogue: String,
+    context: String,
+}
+
+async fn ai_identify_preview_handler(Json(req): Json<AiIdentifyPreviewRequest>) -> impl IntoResponse {
+    if let Err(msg) = crate::ai::check_ai_config(&req.config) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"success": false, "error": msg}))
+        );
+    }
+
+    match crate::ai::identify_speaker(&req.config, &req.dialogue, &req.context).await {
+        Ok(speaker) => {
+            let matched = crate::ai::match_character(&req.config.characters, &speaker.name);
+            let matched_name = matched.map(|c| c.name.clone());
+            let matched_category = matched.and_then(|c| c.category.as_ref().map(|c| c.label().to_string()));
+            let mut allocator = crate::ai::VoiceAllocator::new();
+            let resolved_voice = if let Some(c) = matched {
+                crate::ai::resolve_character_voice(&req.config, &mut allocator, c, speaker.gender.as_deref(), speaker.age.as_deref())
+            } else {
+                crate::ai::resolve_speaker_voice(&req.config, &mut allocator, &speaker.name, speaker.gender.as_deref(), speaker.age.as_deref())
+            };
+            let category_label = matched_category.or_else(|| {
+                crate::ai::VoiceCategory::infer(speaker.gender.as_deref(), speaker.age.as_deref())
+                    .map(|c| c.label().to_string())
+            });
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "success": true,
+                    "speaker": speaker,
+                    "matched_character": matched_name,
+                    "matched_category": category_label,
+                    "matched_voice": resolved_voice,
+                    "assigned_voice": resolved_voice,
+                }))
+            )
+        }
+        Err(e) => (
+            StatusCode::OK,
+            Json(serde_json::json!({"success": false, "error": e.to_string()}))
+        ),
+    }
+}
+
+#[derive(Deserialize)]
+struct SuggestVoicePoolRequest {
+    config: AiDialogueConfig,
+    voices: Vec<crate::api::Voice>,
+}
+
+async fn suggest_voice_pool_handler(Json(req): Json<SuggestVoicePoolRequest>) -> impl IntoResponse {
+    if let Err(msg) = crate::ai::check_ai_config(&req.config) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"success": false, "error": msg}))
+        );
+    }
+    match crate::ai::suggest_voice_pool(&req.config, &req.voices).await {
+        Ok(pool) => (
+            StatusCode::OK,
+            Json(serde_json::json!({"success": true, "voice_pool": pool}))
+        ),
+        Err(e) => (
+            StatusCode::OK,
+            Json(serde_json::json!({"success": false, "error": e.to_string()}))
+        ),
+    }
+}
+
+// --- Allocation API ---
+
+#[derive(Deserialize)]
+struct GenerateAllocationRequest {
+    file_path: String,
+    config: AiDialogueConfig,
+}
+
+#[derive(Deserialize)]
+struct GetAllocationQuery {
+    file_path: String,
+}
+
+#[derive(Deserialize)]
+struct UpdateAllocationRequest {
+    file_path: String,
+    character_name: String,
+    voice_id: String,
+    locked: bool,
+}
+
+async fn list_allocations_handler() -> impl IntoResponse {
+    let dir = allocations_dir();
+    if !dir.exists() {
+        return Json(Vec::<serde_json::Value>::new());
+    }
+    let mut list = Vec::new();
+    if let Ok(rd) = std::fs::read_dir(&dir) {
+        for entry in rd.flatten() {
+            if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                if let Ok(table) = serde_json::from_str::<VoiceAllocationTable>(&content) {
+                    let file_name = std::path::Path::new(&table.file_path)
+                        .file_name().map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_default();
+                    list.push(serde_json::json!({
+                        "file_path": table.file_path,
+                        "novel_title": table.novel_title,
+                        "entry_count": table.entries.len(),
+                        "generated_at": table.generated_at,
+                        "file_name": file_name,
+                    }));
+                }
+            }
+        }
+    }
+    list.sort_by_key(|v| v["file_name"].as_str().unwrap_or("").to_string());
+    Json(list)
+}
+
+async fn get_allocation_handler(
+    Query(q): Query<GetAllocationQuery>,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    if let Some(table) = load_allocation_table(&q.file_path) {
+        return (StatusCode::OK, Json(serde_json::json!({"found": true, "table": table}))).into_response();
+    }
+    // Auto-generate if AI is enabled
+    let config = state.ai_dialogue_config.lock().await.clone();
+    if crate::ai::should_use_ai(&config) {
+        if let Ok(book) = crate::extractor::extract_text(std::path::Path::new(&q.file_path)) {
+            let table = crate::ai::generate_allocation_table(&config, &q.file_path, &book.title, None);
+            save_allocation_table(&table);
+            return (StatusCode::OK, Json(serde_json::json!({"found": true, "table": table, "auto_generated": true}))).into_response();
+        }
+    }
+    (StatusCode::OK, Json(serde_json::json!({"found": false}))).into_response()
+}
+
+async fn generate_allocation_handler(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<GenerateAllocationRequest>,
+) -> impl IntoResponse {
+    let path = std::path::Path::new(&req.file_path);
+    if !path.exists() {
+        return (StatusCode::BAD_REQUEST, Json(serde_json::json!({"success": false, "error": "文件不存在"})));
+    }
+    let config = &req.config;
+    let book = match crate::extractor::extract_text(path) {
+        Ok(b) => b,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"success": false, "error": format!("无法提取文本: {}", e)}))),
+    };
+    let existing = load_allocation_table(&req.file_path);
+    let table = crate::ai::generate_allocation_table(config, &req.file_path, &book.title, existing.as_ref());
+    save_allocation_table(&table);
+    // Also update in-memory config
+    let mut cfg = state.ai_dialogue_config.lock().await;
+    *cfg = config.clone();
+    save_ai_dialogue_config(&cfg);
+    (StatusCode::OK, Json(serde_json::json!({"success": true, "table": table})))
+}
+
+async fn update_allocation_handler(
+    Json(req): Json<UpdateAllocationRequest>,
+) -> impl IntoResponse {
+    let mut table = match load_allocation_table(&req.file_path) {
+        Some(t) => t,
+        None => return (StatusCode::NOT_FOUND, Json(serde_json::json!({"success": false, "error": "分配表不存在，请先生成"}))),
+    };
+    let entry = crate::ai::VoiceAllocationEntry {
+        character_name: req.character_name.clone(),
+        category: None,
+        category_label: None,
+        voice_id: req.voice_id,
+        source: crate::ai::AllocationSource::Manual,
+        locked: req.locked,
+    };
+    table.upsert(entry);
+    save_allocation_table(&table);
+    (StatusCode::OK, Json(serde_json::json!({"success": true, "table": table})))
 }
 
 async fn scan_and_process_autorun(state: &Arc<AppState>) {
@@ -546,8 +869,17 @@ async fn scan_and_process_autorun(state: &Arc<AppState>) {
             };
 
             log_info(&tx, format!("🤖 自动检测任务开始: {:?}", path_clone.file_name().unwrap_or_default()));
-            match process::process_file(&path_clone, &cli_clone, &client_clone, &None, callback, check_cancel).await {
-                Ok(_) => update_task_status(&tasks_state, &path_clone, "completed", None).await,
+            let fp_str = path_clone.to_string_lossy().to_string();
+            let alloc_table = if crate::ai::should_use_ai(&cli_clone.ai_dialogue) {
+                load_allocation_table(&fp_str).map(|t| Arc::new(std::sync::Mutex::new(t)))
+            } else { None };
+            match process::process_file(&path_clone, &cli_clone, &client_clone, &None, callback, check_cancel, alloc_table.clone()).await {
+                Ok(_) => {
+                    if let Some(ref at) = alloc_table {
+                        save_allocation_table(&at.lock().unwrap());
+                    }
+                    update_task_status(&tasks_state, &path_clone, "completed", None).await;
+                }
                 Err(e) => {
                     if e.to_string() == "任务已取消" {
                         update_task_status(&tasks_state, &path_clone, "cancelled", None).await;
@@ -561,8 +893,9 @@ async fn scan_and_process_autorun(state: &Arc<AppState>) {
 }
 
 async fn initial_data_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let data = state.initial_data.lock().await;
-    Json(data.clone())
+    let mut data = state.initial_data.lock().await.clone();
+    data.ai_dialogue_config = Some(state.ai_dialogue_config.lock().await.clone());
+    Json(data)
 }
 
 // 新增：获取任务列表 Handler
@@ -624,8 +957,11 @@ async fn get_voices_handler(
             Ok(voices) => {
                 // 持久化
                 let mut data = state.initial_data.lock().await;
-                data.api_url = Some(params.api_url);
+                data.api_url = Some(params.api_url.clone());
                 data.voices = Some(voices.clone());
+                let mut cfg = load_server_config();
+                cfg.api_url = Some(params.api_url);
+                save_server_config(&cfg);
                 log_info(&state.tx, "API 地址和声音列表已更新。".to_string());
 
                 (StatusCode::OK, Json(serde_json::to_value(voices).unwrap())).into_response()
@@ -639,6 +975,25 @@ async fn get_voices_handler(
             log_error(&state.tx, format!("创建 API 客户端失败: {}", e));
             (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": format!("无法创建客户端: {}", e) }))).into_response()
         }
+    }
+}
+
+/// Generate a short preview audio clip for a voice.
+#[derive(Deserialize)]
+struct VoicePreviewRequest {
+    api_url: String,
+    voice_id: String,
+}
+
+async fn voice_preview_handler(Json(req): Json<VoicePreviewRequest>) -> impl IntoResponse {
+    let client = match crate::api::ApiClient::new(req.api_url) {
+        Ok(c) => c,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse { success: false, message: e.to_string() })).into_response(),
+    };
+    let text = "你好，这是一段试听文本，用于测试声音效果。";
+    match client.generate_speech(text, &Some(req.voice_id), &Some(60), &Some(50), &Some(50)).await {
+        Ok(data) => (StatusCode::OK, [("Content-Type", "audio/wav")], data).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse { success: false, message: e.to_string() })).into_response(),
     }
 }
 
@@ -732,6 +1087,7 @@ async fn batch_convert_handler(
             concurrency: 4,
             preserve_structure: req.preserve_structure,
             web: false,
+            ai_dialogue: req.ai_dialogue.unwrap_or_default(),
         };
 
         // 初始化任务列表
@@ -875,9 +1231,19 @@ async fn batch_convert_handler(
              };
 
              log_info(&tx, format!("▶️ 开始处理文件: {:?}", file_path.file_name().unwrap_or_default()));
-             
-             match process::process_file(&file_path, &cli, &client, &None, callback, check_cancel).await {
-                Ok(_) => update_task_status(&tasks_state, &file_path, "completed", None).await,
+
+             let file_path_str = file_path.to_string_lossy().to_string();
+             let alloc_table = if crate::ai::should_use_ai(&cli.ai_dialogue) {
+                 load_allocation_table(&file_path_str).map(|t| Arc::new(std::sync::Mutex::new(t)))
+             } else { None };
+
+             match process::process_file(&file_path, &cli, &client, &None, callback, check_cancel, alloc_table.clone()).await {
+                Ok(_) => {
+                    if let Some(ref at) = alloc_table {
+                        save_allocation_table(&at.lock().unwrap());
+                    }
+                    update_task_status(&tasks_state, &file_path, "completed", None).await;
+                }
                 Err(e) => {
                     if e.to_string() == "任务已取消" {
                         update_task_status(&tasks_state, &file_path, "cancelled", None).await;
@@ -1015,7 +1381,7 @@ async fn retry_task_handler(
              };
 
                  log_info(&tx, format!("▶️ 重试任务: {:?}", path.file_name().unwrap_or_default()));
-             match process::process_file(&path, &cli, &client, &None, callback, check_cancel).await {
+             match process::process_file(&path, &cli, &client, &None, callback, check_cancel, None).await {
                     Ok(_) => update_task_status(&tasks_state, &path, "completed", None).await,
                 Err(e) => {
                     if e.to_string() == "任务已取消" {
@@ -1147,7 +1513,7 @@ async fn retry_all_failed_handler(State(state): State<Arc<AppState>>) -> impl In
              };
 
              log_info(&tx, format!("▶️ 重试任务: {:?}", path.file_name().unwrap_or_default()));
-             match process::process_file(&path, &cli, &client, &None, callback, check_cancel).await {
+             match process::process_file(&path, &cli, &client, &None, callback, check_cancel, None).await {
                 Ok(_) => update_task_status(&tasks_state, &path, "completed", None).await,
                 Err(e) => {
                     if e.to_string() == "任务已取消" {
@@ -1391,27 +1757,18 @@ async fn update_task_status(tasks: &Arc<Mutex<HashMap<String, TaskState>>>, path
 }
 
 async fn save_tasks_to_disk(tasks: &HashMap<String, TaskState>) {
-    let data_dir = if PathBuf::from("/data").exists() {
-        PathBuf::from("/data")
-    } else {
-        PathBuf::from("data")
-    };
-    if !data_dir.exists() {
-        let _ = tokio::fs::create_dir_all(&data_dir).await;
+    let dir = data_dir();
+    if !dir.exists() {
+        let _ = tokio::fs::create_dir_all(&dir).await;
     }
-    let path = data_dir.join("baitts_tasks.json");
+    let path = dir.join("baitts_tasks.json");
     if let Ok(content) = serde_json::to_string_pretty(tasks) {
         let _ = tokio::fs::write(path, content).await;
     }
 }
 
 async fn load_tasks_from_disk() -> HashMap<String, TaskState> {
-    let data_dir = if PathBuf::from("/data").exists() {
-        PathBuf::from("/data")
-    } else {
-        PathBuf::from("data")
-    };
-    let path = data_dir.join("baitts_tasks.json");
+    let path = data_dir().join("baitts_tasks.json");
     if path.exists() {
         if let Ok(content) = tokio::fs::read_to_string(path).await {
             if let Ok(tasks) = serde_json::from_str(&content) {
@@ -1420,6 +1777,65 @@ async fn load_tasks_from_disk() -> HashMap<String, TaskState> {
         }
     }
     HashMap::new()
+}
+
+fn data_dir() -> PathBuf {
+    if PathBuf::from("/data").exists() {
+        PathBuf::from("/data")
+    } else {
+        PathBuf::from("data")
+    }
+}
+
+fn load_ai_dialogue_config() -> AiDialogueConfig {
+    let path = data_dir().join("ai_dialogue_config.json");
+    if path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            if let Ok(config) = serde_json::from_str(&content) {
+                return config;
+            }
+        }
+    }
+    AiDialogueConfig::default()
+}
+
+fn save_ai_dialogue_config(config: &AiDialogueConfig) {
+    let dir = data_dir();
+    if !dir.exists() {
+        let _ = std::fs::create_dir_all(&dir);
+    }
+    let path = dir.join("ai_dialogue_config.json");
+    if let Ok(content) = serde_json::to_string_pretty(config) {
+        let _ = std::fs::write(path, content);
+    }
+}
+
+fn allocations_dir() -> PathBuf {
+    data_dir().join("allocations")
+}
+
+fn allocation_file_path(file_path: &str) -> PathBuf {
+    let hash = format!("{:x}", md5::compute(file_path.as_bytes()));
+    allocations_dir().join(format!("{}.json", hash))
+}
+
+fn load_allocation_table(file_path: &str) -> Option<VoiceAllocationTable> {
+    let path = allocation_file_path(file_path);
+    if path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            return serde_json::from_str(&content).ok();
+        }
+    }
+    None
+}
+
+fn save_allocation_table(table: &VoiceAllocationTable) {
+    let dir = allocations_dir();
+    let _ = std::fs::create_dir_all(&dir);
+    let path = allocation_file_path(&table.file_path);
+    if let Ok(content) = serde_json::to_string_pretty(table) {
+        let _ = std::fs::write(path, content);
+    }
 }
 
 // 新增：预览 Handler
@@ -1622,6 +2038,7 @@ async fn synthesize_handler(
         concurrency: req.concurrency.unwrap_or(4),
         preserve_structure: false,
         web: false,
+        ai_dialogue: req.ai_dialogue.unwrap_or_default(),
     };
 
     let client = match ApiClient::new(req.api_url.clone()) {
@@ -1711,7 +2128,7 @@ async fn synthesize_handler(
             };
             
             log_info(&tx_clone, "后台任务启动: 处理文本...".to_string());
-            match process::process_file(&temp_path, &cli, &client, &Option::<Regex>::None, callback, || async { false }).await {
+            match process::process_file(&temp_path, &cli, &client, &Option::<Regex>::None, callback, || async { false }, None).await {
                 Ok(_) => {
                     log_info(&tx_clone, "后台任务完成: 文本处理完毕。".to_string());
                     update_task_status(&tasks_state, &temp_path, "completed", None).await;
@@ -1806,7 +2223,7 @@ async fn synthesize_handler(
             };
 
             log_info(&tx_clone, format!("后台任务启动: 处理本地文件 {:?}...", path));
-            match process::process_file(&path, &cli, &client, &Option::<Regex>::None, callback, || async { false }).await {
+            match process::process_file(&path, &cli, &client, &Option::<Regex>::None, callback, || async { false }, None).await {
                 Ok(_) => {
                     log_info(&tx_clone, format!("后台任务完成: {:?} 处理完毕。", path));
                     update_task_status(&tasks_state, &path, "completed", None).await;
@@ -1870,6 +2287,7 @@ async fn synthesize_upload_handler(
     let mut sub: Option<usize> = None;
     let mut concurrency: usize = 4;
     let mut ignore_regex = r"\*{3,}|#{2,}".to_string();
+    let mut ai_dialogue = AiDialogueConfig::default();
     let mut uploaded_file_path: Option<PathBuf> = None;
 
     while let Some(field) = multipart.next_field().await.unwrap_or(None) {
@@ -1919,6 +2337,9 @@ async fn synthesize_upload_handler(
                 "sub" => sub = value.parse().ok(),
                 "concurrency" => concurrency = value.parse().unwrap_or(4),
                 "ignore_regex" => ignore_regex = value,
+                "ai_dialogue" => {
+                    ai_dialogue = serde_json::from_str(&value).unwrap_or_default();
+                }
                 _ => {}
             }
         }
@@ -1951,6 +2372,7 @@ async fn synthesize_upload_handler(
             concurrency: concurrency,
             preserve_structure: false,
             web: false,
+            ai_dialogue,
         };
 
         let client = match ApiClient::new(api_url) {
@@ -2025,7 +2447,7 @@ async fn synthesize_upload_handler(
             };
 
             log_info(&tx_clone, format!("后台任务启动: 处理上传文件 {:?}...", path));
-            match process::process_file(&path, &cli, &client, &Option::<Regex>::None, callback, || async { false }).await {
+            match process::process_file(&path, &cli, &client, &Option::<Regex>::None, callback, || async { false }, None).await {
                 Ok(_) => {
                     log_info(&tx_clone, format!("后台任务完成: {:?} 处理完毕。", path));
                     update_task_status(&tasks_state, &path, "completed", None).await;

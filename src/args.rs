@@ -3,6 +3,7 @@
 use clap::Parser;
 use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
+use crate::ai::AiDialogueConfig;
 
 /// BaiTTS-CLI-rs: 基于 MultiTTS API 的文本转有声书命令行工具 (支持 txt, epub)
 #[derive(Parser, Debug, Clone, Serialize, Deserialize)]
@@ -84,6 +85,11 @@ pub struct Cli {
     #[arg(long, default_value_t = false)]
     #[serde(default)]
     pub preserve_structure: bool,
+
+    /// AI dialogue speaker assignment config.
+    #[arg(skip)]
+    #[serde(default)]
+    pub ai_dialogue: AiDialogueConfig,
 }
 
 // 验证函数

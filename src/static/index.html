@@ -7,19 +7,290 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        :root { --card-border-radius: 12px; }
-        body { background-color: #f4f6f9; padding-bottom: 40px; }
-        [data-bs-theme="dark"] body { background-color: #121212; }
-        .card { border: none; border-radius: var(--card-border-radius); box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 20px; transition: transform 0.2s; }
-        .card-header { background-color: transparent; border-bottom: 1px solid rgba(0,0,0,0.05); font-weight: 600; padding: 1rem 1.25rem; }
-        [data-bs-theme="dark"] .card-header { border-bottom-color: rgba(255,255,255,0.05); }
-        .param-label { font-weight: 500; font-size: 0.9rem; color: #6c757d; }
-        [data-bs-theme="dark"] .param-label { color: #adb5bd; }
-        #logs { height: 300px; overflow-y: auto; background: #1e1e1e; color: #00ff9d; padding: 15px; font-family: 'Consolas', monospace; border-radius: 8px; font-size: 0.85rem; }
-        .nav-tabs .nav-link { border-radius: 8px 8px 0 0; color: var(--bs-body-color); }
-        .nav-tabs .nav-link.active { font-weight: bold; }
-        .form-range::-webkit-slider-thumb { background: var(--bs-primary); }
-        .badge { font-weight: 500; }
+        /* ============================================
+           Design Token System
+           Three-layer: Primitive → Semantic → Component
+           Based on ui-ux-pro-max design system patterns
+           ============================================ */
+
+        /* ---- Primitive Tokens ---- */
+        :root {
+            --hue-primary: 217; --hue-accent: 160; --hue-success: 142;
+            --hue-warning: 38; --hue-danger: 0;
+            --radius-sm: 0.5rem; --radius-md: 0.75rem; --radius-lg: 1rem;
+            --transition-fast: 150ms ease; --transition-normal: 200ms ease;
+        }
+
+        /* ---- Semantic Tokens & Bootstrap Override ---- */
+        :root, [data-bs-theme="light"] {
+            --bg-page: #f0f2f5; --bg-card: #ffffff; --bg-input: #ffffff;
+            --bg-hover: hsl(220 14% 96%); --bg-active: hsl(220 14% 92%);
+            --text-primary: hsl(222 47% 11%); --text-secondary: hsl(220 9% 40%);
+            --text-muted: hsl(220 9% 55%);
+            --border-light: hsl(220 13% 91%); --border-card: hsl(220 13% 94%);
+            --shadow-card: 0 1px 3px rgb(0 0 0 / .04), 0 1px 2px -1px rgb(0 0 0 / .06);
+            --shadow-elevated: 0 4px 16px rgb(0 0 0 / .08);
+            --input-focus-ring: 0 0 0 3px hsl(var(--hue-primary) 91% 60% / .12);
+            --scrollbar-thumb: hsl(220 9% 75%);
+            --accent-stripe: hsl(var(--hue-primary) 91% 58%);
+            --task-pending: hsl(38 92% 46%);
+            --task-processing: hsl(var(--hue-primary) 91% 58%);
+            --task-completed: hsl(var(--hue-success) 60% 42%);
+            --task-error: hsl(var(--hue-danger) 75% 55%);
+            --task-cancelled: hsl(220 9% 55%);
+        }
+
+        [data-bs-theme="dark"] {
+            --bg-page: hsl(222 47% 4%); --bg-card: hsl(222 47% 7%);
+            --bg-input: hsl(222 47% 10%); --bg-hover: hsl(217 33% 14%);
+            --bg-active: hsl(217 33% 18%);
+            --text-primary: hsl(210 40% 96%); --text-secondary: hsl(215 20% 62%);
+            --text-muted: hsl(215 20% 48%);
+            --border-light: hsl(217 33% 18%); --border-card: hsl(217 33% 14%);
+            --shadow-card: 0 1px 3px rgb(0 0 0 / .3);
+            --shadow-elevated: 0 4px 20px rgb(0 0 0 / .45);
+            --input-focus-ring: 0 0 0 3px hsl(var(--hue-primary) 91% 60% / .2);
+            --scrollbar-thumb: hsl(215 20% 35%);
+            --accent-stripe: hsl(var(--hue-accent) 60% 48%);
+        }
+
+        /* ---- Component Tokens ---- */
+        :root {
+            --card-bg: var(--bg-card); --card-border: var(--border-card);
+            --card-radius: var(--radius-md); --card-shadow: var(--shadow-card);
+            --btn-radius: var(--radius-sm);
+            --input-bg: var(--bg-input); --input-border: var(--border-light);
+            --input-radius: var(--radius-sm);
+            --log-bg: #0d1117; --log-color: #00ff9d; --log-radius: var(--radius-sm);
+            --badge-radius: 6px;
+        }
+
+        /* ============================================
+           Global — force override Bootstrap
+           ============================================ */
+        * { transition: background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast); }
+        html body, [data-bs-theme="dark"] body {
+            background: var(--bg-page) !important; color: var(--text-primary) !important;
+            padding-bottom: 40px; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+
+        /* ============================================
+           Navbar
+           ============================================ */
+        .navbar {
+            background: var(--bg-card) !important;
+            border-bottom: 1px solid var(--border-light);
+            box-shadow: 0 1px 8px rgb(0 0 0 / .06) !important;
+        }
+        [data-bs-theme="dark"] .navbar { box-shadow: 0 1px 8px rgb(0 0 0 / .3) !important; }
+        .navbar .btn { border-radius: var(--btn-radius); }
+
+        /* ============================================
+           Cards — visible accent stripe
+           ============================================ */
+        .card {
+            border: 1px solid var(--card-border) !important; border-radius: var(--card-radius) !important;
+            box-shadow: var(--card-shadow) !important; background: var(--card-bg) !important;
+            margin-bottom: 20px; overflow: hidden;
+        }
+        .card-header {
+            background: var(--bg-hover) !important; border-bottom: 1px solid var(--border-light);
+            font-weight: 600; padding: .875rem 1.25rem; font-size: .9rem;
+        }
+        .card-header.bg-primary { background: hsl(var(--hue-primary) 91% 58%) !important; color: #fff; }
+        .card-header.bg-info { background: hsl(var(--hue-accent) 50% 45%) !important; color: #fff; }
+        .card-header.bg-warning { background: hsl(var(--hue-warning) 70% 48%) !important; color: #111; }
+        .card-header.bg-secondary { background: var(--bg-hover) !important; color: var(--text-primary); }
+
+        /* ============================================
+           Buttons
+           ============================================ */
+        .btn {
+            border-radius: var(--btn-radius) !important; font-weight: 500;
+            transition: all var(--transition-fast); letter-spacing: .01em;
+        }
+        .btn-primary { box-shadow: 0 2px 4px hsl(var(--hue-primary) 91% 50% / .25); }
+        .btn-primary:hover { box-shadow: 0 4px 12px hsl(var(--hue-primary) 91% 50% / .35); transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(0) !important; }
+        .btn-lg { border-radius: var(--radius-md) !important; font-size: 1.1rem; padding: .6rem 1.8rem; }
+        .btn-sm { font-size: .8rem; padding: .25rem .6rem; }
+
+        /* ============================================
+           Inputs & Selects
+           ============================================ */
+        .form-control, .form-select {
+            border-radius: var(--input-radius) !important; border-color: var(--input-border) !important;
+            background: var(--input-bg) !important; color: var(--text-primary) !important; font-size: .875rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: hsl(var(--hue-primary) 91% 60%) !important;
+            box-shadow: var(--input-focus-ring) !important;
+        }
+        .form-range::-webkit-slider-runnable-track { background: var(--border-light); border-radius: 4px; }
+        .form-range::-webkit-slider-thumb {
+            background: linear-gradient(135deg, hsl(var(--hue-primary) 91% 55%), hsl(var(--hue-accent) 55% 45%));
+            box-shadow: 0 1px 4px hsl(var(--hue-primary) 91% 50% / .3);
+            width: 20px; height: 20px; margin-top: -7px;
+        }
+        .param-label { font-weight: 500; font-size: .82rem; color: var(--text-secondary); margin-bottom: .25rem; }
+
+        /* ============================================
+           Tables
+           ============================================ */
+        .table { --bs-table-bg: transparent; --bs-table-color: var(--text-primary); margin-bottom: 0; }
+        .table thead th {
+            background: var(--bg-hover) !important; font-size: .78rem; color: var(--text-secondary);
+            font-weight: 600; border-bottom: 2px solid var(--border-light) !important; padding: .6rem .75rem;
+        }
+        .table td { font-size: .875rem; vertical-align: middle; border-color: var(--border-light); }
+
+        /* ============================================
+           Badges
+           ============================================ */
+        .badge { font-weight: 500; border-radius: var(--badge-radius); font-size: .72rem; padding: .25em .6em; }
+        .badge.bg-info { background: hsl(var(--hue-primary) 91% 58% / .12) !important; color: hsl(var(--hue-primary) 91% 50%); }
+        .badge.bg-secondary { background: hsl(220 9% 46% / .12) !important; color: hsl(220 9% 40%); }
+        .badge.bg-primary { background: hsl(var(--hue-primary) 91% 58% / .12) !important; color: hsl(var(--hue-primary) 91% 50%); }
+        .badge.bg-warning { background: hsl(var(--hue-warning) 92% 46% / .12) !important; color: hsl(var(--hue-warning) 80% 40%); }
+        .badge.bg-success { background: hsl(var(--hue-success) 60% 42% / .12) !important; color: hsl(var(--hue-success) 60% 30%); }
+        .badge.bg-danger { background: hsl(var(--hue-danger) 75% 55% / .12) !important; color: hsl(var(--hue-danger) 70% 42%); }
+
+        /* Task status badges */
+        .status-badge { display: inline-block; padding: .2em .55em; border-radius: 10px; font-size: .72rem; font-weight: 600; }
+        .status-pending { background: hsl(38 92% 50% / .12); color: var(--task-pending); }
+        .status-processing { background: hsl(217 91% 60% / .12); color: var(--task-processing); }
+        .status-completed { background: hsl(142 60% 45% / .12); color: var(--task-completed); }
+        .status-error { background: hsl(0 75% 55% / .12); color: var(--task-error); }
+        .status-cancelled { background: hsl(220 9% 55% / .12); color: var(--task-cancelled); }
+
+        /* ============================================
+           Task List
+           ============================================ */
+        .task-item {
+            border: 1px solid var(--border-light); border-radius: var(--radius-sm);
+            padding: .75rem 1rem; margin-bottom: .5rem; background: var(--bg-card);
+            border-left: 3px solid var(--task-processing); transition: all var(--transition-fast);
+        }
+        .task-item:hover { box-shadow: var(--shadow-card); }
+        .task-item.status-pending { border-left-color: var(--task-pending); }
+        .task-item.status-processing { border-left-color: var(--task-processing); }
+        .task-item.status-completed { border-left-color: var(--task-completed); }
+        .task-item.status-error { border-left-color: var(--task-error); }
+        .task-item.status-cancelled { border-left-color: var(--task-cancelled); }
+
+        /* ============================================
+           Progress Bar
+           ============================================ */
+        .progress {
+            background: var(--bg-hover); border-radius: 8px; height: 8px;
+            box-shadow: inset 0 1px 2px rgb(0 0 0 / .06);
+        }
+        .progress-bar {
+            border-radius: 8px; background: linear-gradient(90deg, hsl(var(--hue-primary) 91% 55%), hsl(var(--hue-accent) 60% 45%));
+            transition: width .3s ease;
+        }
+
+        /* ============================================
+           Log Area
+           ============================================ */
+        #logs {
+            background: var(--log-bg); color: var(--log-color); border-radius: var(--log-radius);
+            padding: 14px; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: .82rem; line-height: 1.5; overflow-y: auto; height: 300px;
+            box-shadow: inset 0 2px 8px rgb(0 0 0 / .3);
+        }
+        #logs::before {
+            content: '▶ Terminal'; display: block; font-size: .7rem;
+            color: hsl(220 9% 50%); margin-bottom: 8px; letter-spacing: .05em;
+        }
+
+        /* ============================================
+           Settings Page Layout
+           ============================================ */
+        #settingsPage .card-body { padding: 1.5rem; }
+        #settingsPage .card { max-width: 900px; margin: 0 auto; }
+
+        /* ============================================
+           Voice Pool Accordion
+           ============================================ */
+        #voicePoolAccordion .accordion-button {
+            font-size: .88rem; font-weight: 500; padding: .6rem 1rem;
+            background: var(--bg-card); color: var(--text-primary);
+            border-radius: var(--radius-sm) !important;
+            transition: all var(--transition-fast);
+        }
+        #voicePoolAccordion .accordion-button:not(.collapsed) {
+            background: hsl(var(--hue-primary) 91% 58% / .08); color: hsl(var(--hue-primary) 91% 50%);
+            box-shadow: none;
+        }
+        #voicePoolAccordion .accordion-button::after {
+            transition: transform var(--transition-normal);
+        }
+        #voicePoolAccordion .accordion-item {
+            border: 1px solid var(--border-light); border-radius: var(--radius-sm); margin-bottom: .35rem;
+            background: transparent;
+        }
+        #voicePoolAccordion .accordion-body { padding: .75rem; background: var(--bg-page); }
+        #voicePoolAccordion .accordion-body .form-check-inline {
+            margin-right: .25rem; font-size: .78rem;
+        }
+
+        /* ============================================
+           Allocation Table
+           ============================================ */
+        #allocationTable { font-size: .85rem; }
+        #allocationTable .form-select { font-size: .8rem; padding: .2rem .4rem; }
+        .alloc-lock { width: 1rem; height: 1rem; margin: 0; cursor: pointer; accent-color: hsl(var(--hue-primary) 91% 55%); }
+
+        /* ============================================
+           Form Check / Switch
+           ============================================ */
+        .form-check-input:checked {
+            background-color: hsl(var(--hue-primary) 91% 55%);
+            border-color: hsl(var(--hue-primary) 91% 55%);
+        }
+        .form-switch .form-check-input {
+            width: 2.5em; height: 1.3em; cursor: pointer;
+        }
+
+        /* ============================================
+           Animations
+           ============================================ */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+        #settingsPage.show { animation: fadeIn .2s ease; }
+        #mainPage.show { animation: fadeIn .2s ease; }
+        .task-item.new { animation: slideInRight .25s ease; }
+
+        /* ============================================
+           Nav Tabs (input page)
+           ============================================ */
+        .nav-tabs .nav-link {
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            color: var(--text-secondary); font-size: .9rem;
+        }
+        .nav-tabs .nav-link.active { font-weight: 600; color: hsl(var(--hue-primary) 91% 55%); }
+
+        /* ============================================
+           Modal polish
+           ============================================ */
+        .modal-content { border-radius: var(--radius-md); border: 1px solid var(--border-light); }
+        .modal-header { border-bottom: 1px solid var(--border-light); }
+        .modal-footer { border-top: 1px solid var(--border-light); }
+
+        /* ============================================
+           Toast
+           ============================================ */
+        .toast-notify {
+            position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
+            background: var(--bg-card); border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm); padding: .6rem 1rem;
+            box-shadow: var(--shadow-elevated); font-size: .85rem; color: var(--text-primary);
+            animation: slideInRight .3s ease;
+        }
     </style>
 </head>
 <body>
@@ -27,8 +298,11 @@
         <div class="container">
             <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-soundwave"></i> BaiTTS <small class="text-muted fw-normal fs-6">有声书合成工具</small></a>
             <div class="d-flex align-items-center gap-3">
-                 <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                 <button class="btn btn-outline-primary" id="btnToSettings" onclick="showPage('settings')">
                     <i class="bi bi-gear"></i> 设置
+                 </button>
+                 <button class="btn btn-outline-secondary" id="btnToMain" onclick="showPage('main')" style="display:none;">
+                    <i class="bi bi-house"></i> 主页
                  </button>
                  <div class="form-check form-switch mb-0" title="深色模式">
                     <input class="form-check-input" type="checkbox" id="darkModeSwitch">
@@ -38,10 +312,10 @@
         </div>
     </nav>
 
-    <div class="container">
+    <div class="container" id="mainPage">
         <!-- 输入内容 -->
         <div class="card">
-            <div class="card-header bg-warning text-dark">输入内容</div>
+            <div class="card-header bg-primary text-white">输入内容</div>
             <div class="card-body">
                 <ul class="nav nav-tabs mb-3" id="inputTab" role="tablist">
                     <li class="nav-item" role="presentation">
@@ -123,7 +397,7 @@
 
         <!-- 批量转换 -->
         <div class="card">
-            <div class="card-header bg-info text-white">批量转换</div>
+            <div class="card-header bg-primary text-white">批量转换</div>
             <div class="card-body">
                 <div class="alert alert-info">
                     此功能会处理 Docker 卷 <code>/book</code> 内所有 <code>.txt</code> 和 <code>.epub</code> 文件，并使用上方选择的声音进行转换。音频文件将保存到 <code>/out</code> 卷。
@@ -136,9 +410,46 @@
             </div>
         </div>
 
+        <!-- 角色声音分配表 -->
+        <div class="card" id="allocationCard" style="display: none;">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <span>角色声音分配表</span>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-light" id="btnAllocGenerate" onclick="generateAllocationTable()">重新生成</button>
+                    <button class="btn btn-outline-light" id="btnAllocSave" onclick="saveAllocationTable()">保存</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">选择小说文件</label>
+                    <select class="form-select" id="allocFileSelect" onchange="loadAllocationTable(this.value)">
+                        <option value="">-- 请选择文件 --</option>
+                    </select>
+                </div>
+                <div id="allocationContent" style="display: none;">
+                    <span id="allocNovelTitle" class="fw-bold"></span>
+                    <span id="allocGeneratedAt" class="text-muted small ms-2"></span>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm align-middle" id="allocationTable">
+                            <thead>
+                                <tr>
+                                    <th>角色名</th>
+                                    <th>分类</th>
+                                    <th>分配声音</th>
+                                    <th>来源</th>
+                                    <th>锁定</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allocationBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 任务进度 -->
         <div class="card" id="tasksCard" style="display: none;">
-            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <span>任务进度</span>
                 <div>
                     <button class="btn btn-sm btn-outline-warning me-2" onclick="retryAllFailed()">全部重试</button>
@@ -196,7 +507,7 @@
 
         <!-- 日志 -->
         <div class="card">
-            <div class="card-header bg-dark text-white">运行日志</div>
+            <div class="card-header bg-primary text-white">运行日志</div>
             <div class="card-body p-0">
                 <div id="logs">
                     <div>等待操作...</div>
@@ -204,16 +515,13 @@
             </div>
         </div>
     </div>
-    
-    <!-- 设置模态框 -->
-    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="settingsModalLabel">设置</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
+    </div>
+
+    <!-- 设置页面 -->
+    <div class="container" id="settingsPage" style="display:none;">
+        <div class="card">
+            <div class="card-header bg-primary text-white">设置</div>
+            <div class="card-body">
                     <!-- API 设置 -->
                     <div class="card mb-3">
                         <div class="card-header bg-primary text-white">API 设置</div>
@@ -228,7 +536,7 @@
 
                     <!-- 参数设置 -->
                     <div class="card">
-                        <div class="card-header bg-success text-white">声音参数</div>
+                        <div class="card-header bg-primary text-white">声音参数</div>
                         <div class="card-body">
                             <div class="mb-3">
                                 <label class="form-label param-label">选择声音</label>
@@ -294,6 +602,129 @@
                                 </div>
                             </fieldset>
 
+                            <fieldset class="mt-3 border p-3 rounded">
+                                <legend class="w-auto px-2 fs-6 fw-bold">AI 对话分配</legend>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="aiDialogueEnabled">
+                                    <label class="form-check-label" for="aiDialogueEnabled">启用 AI 说话人识别</label>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label param-label">模型 API 地址</label>
+                                        <input type="text" class="form-control" id="aiApiUrl" placeholder="https://api.example.com/v1/chat/completions">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label param-label">API 密钥</label>
+                                        <input type="password" class="form-control" id="aiApiKey" placeholder="多个 Key 用 @@ 分隔">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label param-label">模型名</label>
+                                        <input type="text" class="form-control" id="aiModel" placeholder="LongCat-Flash-Lite">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label param-label">Temperature</label>
+                                        <input type="number" class="form-control" id="aiTemperature" min="0" max="2" step="0.01" value="0.05">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label param-label">Top P</label>
+                                        <input type="number" class="form-control" id="aiTopP" min="0" max="1" step="0.01" value="0.3">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label param-label">最大 Tokens</label>
+                                        <input type="number" class="form-control" id="aiMaxTokens" min="20" max="1000" value="120">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label param-label">上下文长度</label>
+                                        <input type="number" class="form-control" id="aiContextChars" min="200" max="8000" value="1800">
+                                    </div>
+                                </div>
+                                <div class="row g-2 mt-2">
+                                    <div class="col-auto">
+                                        <button type="button" class="btn btn-outline-info btn-sm" id="btnAiTest" onclick="testAiConnection()"><i class="bi bi-check-circle"></i> 测试连接</button>
+                                    </div>
+                                    <div class="col-auto">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAiIdentifyPreview" onclick="testAiIdentifyPreview()"><i class="bi bi-search"></i> 预览识别</button>
+                                    </div>
+                                    <div class="col" id="aiTestResult" style="line-height:2;"></div>
+                                </div>
+
+                                <!-- Voice Pool -->
+                                <div class="border-top mt-3 pt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="fw-bold mb-0">声音池 (10 个分类)</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-info" id="btnAiSuggestPool" onclick="suggestVoicePool()"><i class="bi bi-magic"></i> AI 建议</button>
+                                    </div>
+                                    <div class="accordion" id="voicePoolAccordion"></div>
+                                </div>
+
+                                <!-- Character Table -->
+                                <div class="border-top mt-3 pt-3">
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-2">
+                                            <label class="form-label param-label">角色名</label>
+                                            <input type="text" class="form-control" id="aiRoleName" placeholder="角色名">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label param-label">别名</label>
+                                            <input type="text" class="form-control" id="aiRoleAliases" placeholder="别名用 | 分隔">
+                                        </div>
+                                        <div class="col-md-1">
+                                            <label class="form-label param-label">性别</label>
+                                            <select class="form-select" id="aiRoleGender">
+                                                <option value="">-</option>
+                                                <option value="男">男</option>
+                                                <option value="女">女</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label param-label">年龄</label>
+                                            <select class="form-select" id="aiRoleAge">
+                                                <option value="">-</option>
+                                                <option value="儿童">儿童</option>
+                                                <option value="少年">少年</option>
+                                                <option value="青年">青年</option>
+                                                <option value="中年">中年</option>
+                                                <option value="老年">老年</option>
+                                                <option value="女童">女童</option>
+                                                <option value="少女">少女</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label param-label">分类</label>
+                                            <select class="form-select" id="aiRoleCategory"></select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label param-label">覆盖声</label>
+                                            <select class="form-select" id="aiRoleVoice"><option value="">自动</option></select>
+                                        </div>
+                                        <div class="col-md-1 d-grid">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddAiRole">添加</button>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive mt-3">
+                                        <table class="table table-sm align-middle">
+                                            <thead>
+                                                <tr>
+                                                    <th>角色名</th>
+                                                    <th>别名</th>
+                                                    <th>性别</th>
+                                                    <th>年龄</th>
+                                                    <th>分类</th>
+                                                    <th>覆盖声音</th>
+                                                    <th class="text-end">操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="aiRolesBody">
+                                                <tr><td colspan="7" class="text-muted text-center">暂无角色</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="mt-2 text-end">
+                                        <button type="button" class="btn btn-outline-success btn-sm" id="btnSaveAiConfig" onclick="saveAiDialogueConfigToServer()">保存 AI 配置</button>
+                                    </div>
+                                </div>
+                            </fieldset>
+
                             <div class="row mt-3">
                                 <div class="col-md-12">
                                     <div class="form-check form-switch">
@@ -323,10 +754,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                </div>
             </div>
         </div>
     </div>
@@ -401,6 +828,10 @@
     <script>
         let currentTasksMap = {};
         let sysDefaults = { volume: 50, speed: 50, pitch: 50 };
+        let aiRoles = [];
+        const VOICE_CATEGORIES = ['男童','女童','少男','少女','男青年','女青年','男中年','女中年','男老年','女老年'];
+        let voicePool = {};
+        let availableVoices = [];
         
         let selectedTaskIds = new Set();
         let currentFilteredTasks = [];
@@ -409,12 +840,30 @@
         let currentSearchQuery = "";
         let currentStatusFilter = "all";
 
+        function showPage(page) {
+            const main = document.getElementById('mainPage');
+            const settings = document.getElementById('settingsPage');
+            if (page === 'settings') {
+                main.style.display = 'none'; main.classList.remove('show');
+                settings.style.display = ''; settings.classList.add('show');
+                document.getElementById('btnToSettings').style.display = 'none';
+                document.getElementById('btnToMain').style.display = '';
+            } else {
+                settings.style.display = 'none'; settings.classList.remove('show');
+                main.style.display = ''; main.classList.add('show');
+                document.getElementById('btnToSettings').style.display = '';
+                document.getElementById('btnToMain').style.display = 'none';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             initTheme();
             await loadInitialData();
             loadLocalStorageSettings();
             checkAutoRunStatus();
             fmLoadFiles(); // 加载文件列表
+            loadAllocFileList();
+            injectVoicePlayButtons();
             updateTasks();
             setInterval(updateTasks, 2000);
         });
@@ -478,6 +927,335 @@
             preserveStructure.addEventListener('change', (e) => {
                 localStorage.setItem('preserveStructure', e.target.checked);
             });
+
+            loadAiDialogueSettings();
+        }
+
+        function loadAiDialogueSettings() {
+            const config = JSON.parse(localStorage.getItem('aiDialogueConfig') || '{}');
+            loadAiDialogueSettingsFromConfig(config);
+        }
+
+        function loadAiDialogueSettingsFromConfig(config) {
+            document.getElementById('aiDialogueEnabled').checked = !!config.enabled;
+            document.getElementById('aiApiUrl').value = config.api_url || '';
+            document.getElementById('aiApiKey').value = config.api_key || '';
+            document.getElementById('aiModel').value = config.model || '';
+            document.getElementById('aiTemperature').value = config.temperature ?? 0.05;
+            document.getElementById('aiTopP').value = config.top_p ?? 0.3;
+            document.getElementById('aiMaxTokens').value = config.max_tokens ?? 120;
+            document.getElementById('aiContextChars').value = config.context_chars ?? 1800;
+            aiRoles = Array.isArray(config.characters) ? config.characters : [];
+            voicePool = config.voice_pool?.entries || {};
+            ['aiDialogueEnabled','aiApiUrl','aiApiKey','aiModel','aiTemperature','aiTopP','aiMaxTokens','aiContextChars'].forEach(id => {
+                document.getElementById(id).removeEventListener('input', saveAiDialogueSettings);
+                document.getElementById(id).removeEventListener('change', saveAiDialogueSettings);
+                document.getElementById(id).addEventListener('input', saveAiDialogueSettings);
+                document.getElementById(id).addEventListener('change', saveAiDialogueSettings);
+            });
+            document.getElementById('btnAddAiRole').removeEventListener('click', addAiRole);
+            document.getElementById('btnAddAiRole').addEventListener('click', addAiRole);
+            populateAiRoleVoiceSelect();
+            populateCategorySelect();
+            renderVoicePool();
+            renderAiRoles();
+            // Sync allocation card visibility
+            document.getElementById('allocationCard').style.display = !!config.enabled ? '' : 'none';
+        }
+
+        function populateCategorySelect() {
+            const sel = document.getElementById('aiRoleCategory');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">-- 选择分类 --</option>';
+            VOICE_CATEGORIES.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.text = cat;
+                sel.appendChild(opt);
+            });
+        }
+
+        function renderVoicePool() {
+            const container = document.getElementById('voicePoolAccordion');
+            if (!container) return;
+            container.innerHTML = VOICE_CATEGORIES.map((cat, i) => {
+                const voices = voicePool[cat] || [];
+                const badges = voices.map(v => `<span class="badge bg-secondary me-1">${voiceLabel(v)}</span>`).join('') || '<span class="text-muted">空</span>';
+                return `<div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pool-${cat}">
+                            ${cat} <span class="badge bg-primary ms-2">${voices.length}</span>
+                        </button>
+                    </h2>
+                    <div id="pool-${cat}" class="accordion-collapse collapse" data-bs-parent="#voicePoolAccordion">
+                        <div class="accordion-body">
+                            <div class="d-flex flex-wrap gap-1" id="poolVoices-${cat}"></div>
+                            <button class="btn btn-sm btn-outline-danger mt-2" onclick="clearCategoryVoices('${cat}')">清空</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            VOICE_CATEGORIES.forEach(cat => {
+                const div = document.getElementById(`poolVoices-${cat}`);
+                if (!div) return;
+                const poolVoices = voicePool[cat] || [];
+                div.innerHTML = availableVoices.map(v => {
+                    const checked = poolVoices.includes(v.id) ? 'checked' : '';
+                    return `<div class="form-check form-check-inline">
+                        <input class="form-check-input pool-voice-cb" type="checkbox" value="${v.id}" ${checked}
+                               onchange="toggleVoiceInPool('${cat}', '${v.id}', this.checked)">
+                        <label class="form-check-label small">${voiceLabel(v)}</label>
+                    </div>`;
+                }).join('');
+            });
+        }
+
+        function voiceLabel(v) {
+            if (typeof v === 'string') {
+                const found = availableVoices.find(av => av.id === v);
+                return found ? `${found.name}` : v;
+            }
+            return v.name ? `${v.name}` : (v.id || '-');
+        }
+
+        function toggleVoiceInPool(category, voiceId, add) {
+            if (!voicePool[category]) voicePool[category] = [];
+            if (add) {
+                if (!voicePool[category].includes(voiceId)) voicePool[category].push(voiceId);
+            } else {
+                voicePool[category] = voicePool[category].filter(v => v !== voiceId);
+            }
+            saveAiDialogueSettings();
+            renderVoicePool();
+        }
+
+        function clearCategoryVoices(category) {
+            voicePool[category] = [];
+            saveAiDialogueSettings();
+            renderVoicePool();
+        }
+
+        async function suggestVoicePool() {
+            const config = getAiDialogueConfig();
+            if (!config.enabled || !config.api_url || !config.api_key || !config.model) {
+                return alert('请先启用 AI 并完整填写模型设置');
+            }
+            const btn = document.getElementById('btnAiSuggestPool');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> AI 分析中...';
+            try {
+                const res = await fetch('/api/voice_pool/suggest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config, voices: availableVoices })
+                });
+                const data = await res.json();
+                if (data.success && data.voice_pool && data.voice_pool.entries) {
+                    voicePool = data.voice_pool.entries;
+                    saveAiDialogueSettings();
+                    renderVoicePool();
+                    showToast('AI 声音建议已完成，请检查并保存');
+                } else {
+                    alert('AI 建议失败: ' + (data.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('网络错误: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-magic"></i> AI 建议';
+            }
+        }
+
+        function getAiDialogueConfig() {
+            return {
+                enabled: document.getElementById('aiDialogueEnabled').checked,
+                api_url: document.getElementById('aiApiUrl').value.trim() || null,
+                api_key: document.getElementById('aiApiKey').value.trim() || null,
+                model: document.getElementById('aiModel').value.trim() || null,
+                temperature: parseFloat(document.getElementById('aiTemperature').value || '0.05'),
+                top_p: parseFloat(document.getElementById('aiTopP').value || '0.3'),
+                max_tokens: parseInt(document.getElementById('aiMaxTokens').value || '120'),
+                context_chars: parseInt(document.getElementById('aiContextChars').value || '1800'),
+                characters: aiRoles,
+                voice_pool: { entries: voicePool }
+            };
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-notify';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .3s'; setTimeout(() => toast.remove(), 300); }, 2500);
+        }
+
+        function saveAiDialogueSettings() {
+            const config = getAiDialogueConfig();
+            localStorage.setItem('aiDialogueConfig', JSON.stringify(config));
+            // Debounced save to server
+            clearTimeout(window._aiConfigSaveTimer);
+            window._aiConfigSaveTimer = setTimeout(async () => {
+                try {
+                    await fetch('/api/ai_config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    });
+                } catch (e) {}
+            }, 800);
+        }
+
+        async function testAiConnection() {
+            const url = document.getElementById('aiApiUrl').value.trim();
+            const key = document.getElementById('aiApiKey').value.trim();
+            const model = document.getElementById('aiModel').value.trim();
+            const resultEl = document.getElementById('aiTestResult');
+            if (!url || !model) {
+                resultEl.innerHTML = '<span class="text-danger">请填写 API 地址和模型名</span>';
+                return;
+            }
+            resultEl.innerHTML = '<span class="text-info">测试中...</span>';
+            try {
+                const res = await fetch('/api/ai_test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_url: url, api_key: key, model: model })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    resultEl.innerHTML = `<span class="text-success">OK (${data.latency_ms}ms)</span>`;
+                } else {
+                    resultEl.innerHTML = `<span class="text-danger">${data.error || '连接失败'}</span>`;
+                }
+            } catch (e) {
+                resultEl.innerHTML = `<span class="text-danger">${e.message}</span>`;
+            }
+        }
+
+        async function testAiIdentifyPreview() {
+            const config = getAiDialogueConfig();
+            if (!config.enabled || !config.api_url || !config.api_key || !config.model) {
+                showToast('请先启用 AI 并完整填写模型设置');
+                return;
+            }
+            const dialogue = prompt('请输入要测试的对白文本（如"我去买几个橘子"）：');
+            if (!dialogue) return;
+            const context = prompt('请输入章节上下文（可选，留空则跳过）：', '');
+            const resultEl = document.getElementById('aiTestResult');
+            resultEl.innerHTML = '<span class="text-info">识别中...</span>';
+            try {
+                const res = await fetch('/api/ai_identify_preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config, dialogue, context: context || '' })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const s = data.speaker;
+                    let msg = `<span class="text-success">说话人: <b>${s.name}</b> (${s.gender || '?'}/${s.age || '?'})</span>`;
+                    if (data.matched_character) {
+                        msg += `<br><span class="text-primary">匹配角色: ${data.matched_character}</span>`;
+                        if (data.matched_category) msg += ` <span class="badge bg-info">${data.matched_category}</span>`;
+                        if (data.matched_voice) msg += ` → ${data.matched_voice}`;
+                    } else if (data.matched_voice) {
+                        if (data.matched_category) msg += `<br><span class="badge bg-info">${data.matched_category}</span>`;
+                        msg += `<br><span class="text-success">声音池自动分配: ${data.matched_voice}</span>`;
+                    } else {
+                        msg += '<br><span class="text-warning">未匹配且声音池无对应分类, 将使用默认对话声音</span>';
+                    }
+                    resultEl.innerHTML = msg;
+                } else {
+                    resultEl.innerHTML = `<span class="text-danger">${data.error || '识别失败'}</span>`;
+                }
+            } catch (e) {
+                resultEl.innerHTML = `<span class="text-danger">${e.message}</span>`;
+            }
+        }
+
+        async function saveAiDialogueConfigToServer() {
+            const config = getAiDialogueConfig();
+            localStorage.setItem('aiDialogueConfig', JSON.stringify(config));
+            try {
+                const res = await fetch('/api/ai_config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('AI 配置已保存到服务器');
+                }
+            } catch (e) {
+                showToast('保存失败: ' + e.message);
+            }
+        }
+
+        function populateAiRoleVoiceSelect() {
+            const select = document.getElementById('aiRoleVoice');
+            if (!select) return;
+            select.innerHTML = '<option value="">选择声音</option>';
+            availableVoices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.id;
+                opt.text = `${v.name} (${v.id})`;
+                select.appendChild(opt);
+            });
+        }
+
+        function addAiRole() {
+            const name = document.getElementById('aiRoleName').value.trim();
+            const category = document.getElementById('aiRoleCategory').value;
+            const voiceOverride = document.getElementById('aiRoleVoice').value;
+            if (!name) return alert('请设置角色名');
+            aiRoles = aiRoles.filter(role => role.name !== name);
+            aiRoles.push({
+                name,
+                aliases: document.getElementById('aiRoleAliases').value.split('|').map(v => v.trim()).filter(Boolean),
+                gender: document.getElementById('aiRoleGender').value || null,
+                age: document.getElementById('aiRoleAge').value || null,
+                category: category || null,
+                voice_id: voiceOverride || null,
+                enabled: true
+            });
+            ['aiRoleName','aiRoleAliases'].forEach(id => document.getElementById(id).value = '');
+            saveAiDialogueSettings();
+            renderAiRoles();
+        }
+
+        function renderAiRoles() {
+            const body = document.getElementById('aiRolesBody');
+            if (!body) return;
+            if (!aiRoles.length) {
+                body.innerHTML = '<tr><td colspan="7" class="text-muted text-center">暂无角色</td></tr>';
+                return;
+            }
+            body.innerHTML = aiRoles.map((role, index) => {
+                const catLabel = role.category || '-';
+                const voiceLabelText = role.voice_id ? voiceLabel(role.voice_id) : '<span class="text-muted">自动(声音池)</span>';
+                return `<tr>
+                    <td>${escapeHtml(role.name || '')}</td>
+                    <td>${escapeHtml((role.aliases || []).join('|'))}</td>
+                    <td>${escapeHtml(role.gender || '-')}</td>
+                    <td>${escapeHtml(role.age || '-')}</td>
+                    <td><span class="badge bg-info">${escapeHtml(catLabel)}</span></td>
+                    <td>${voiceLabelText}</td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAiRole(${index})">删除</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function removeAiRole(index) {
+            aiRoles.splice(index, 1);
+            saveAiDialogueSettings();
+            renderAiRoles();
         }
 
         // 参数显示同步
@@ -529,6 +1307,7 @@
         };
         
         function populateVoices(voices, selectElement) {
+            availableVoices = Array.isArray(voices) ? voices : [];
             selectElement.innerHTML = ''; // Clear existing options
             if (!voices || voices.length === 0) {
                 const opt = document.createElement('option');
@@ -565,6 +1344,9 @@
             });
             const savedDialogVoice = localStorage.getItem('voice_dialogue_id');
             if (savedDialogVoice) dialogSelect.value = savedDialogVoice;
+            populateAiRoleVoiceSelect();
+            renderAiRoles();
+            setTimeout(injectVoicePlayButtons, 200);
         }
 
         async function loadInitialData() {
@@ -602,6 +1384,16 @@
                     document.getElementById('btnRefreshVoices').click();
                 } else {
                     log('💡 未从环境加载配置，请手动输入 API 地址。')
+                }
+
+                // Load AI dialogue config from server if available; localStorage overrides
+                if (data.ai_dialogue_config) {
+                    const serverCfg = data.ai_dialogue_config;
+                    const localCfg = JSON.parse(localStorage.getItem('aiDialogueConfig') || '{}');
+                    const merged = { ...serverCfg, ...localCfg };
+                    localStorage.setItem('aiDialogueConfig', JSON.stringify(merged));
+                    if (localCfg.api_key) merged.api_key = localCfg.api_key;
+                    loadAiDialogueSettingsFromConfig(merged);
                 }
 
             } catch (e) {
@@ -1085,6 +1877,7 @@
             const sub = enableLrc ? lrcChars : 0;
             const ignoreRegex = document.getElementById('ignoreRegex').value;
             const preserveStructure = document.getElementById('preserveStructure').checked;
+            const aiDialogue = getAiDialogueConfig();
 
             if (!voiceId) {
                 return alert("请先选择一个声音！");
@@ -1118,7 +1911,8 @@
                         speed_dialogue: speedDialogue,
                         pitch_dialogue: pitchDialogue,
                         sub: sub,
-                        preserve_structure: preserveStructure
+                        preserve_structure: preserveStructure,
+                        ai_dialogue: aiDialogue
                     })
                 });
 
@@ -1139,6 +1933,218 @@
                 btn.innerText = "开始批量转换";
                 btnStop.disabled = true;
             }
+        });
+
+        // --- Voice Allocation Table ---
+        let currentAllocTable = null;
+        let currentAllocFilePath = '';
+
+        async function loadAllocFileList() {
+            try {
+                const res = await fetch('/api/files/list?root=book');
+                const files = await res.json();
+                const sel = document.getElementById('allocFileSelect');
+                sel.innerHTML = '<option value="">-- 请选择文件 --</option>';
+                const bookDir = files.filter(f => !f.is_dir && (f.name.endsWith('.txt') || f.name.endsWith('.epub')));
+                bookDir.forEach(f => {
+                    const path = 'book/' + f.name;
+                    const opt = document.createElement('option');
+                    opt.value = path;
+                    opt.text = f.name;
+                    sel.appendChild(opt);
+                });
+            } catch(e) {}
+        }
+
+        async function loadAllocationTable(filePath) {
+            if (!filePath) {
+                document.getElementById('allocationContent').style.display = 'none';
+                currentAllocTable = null;
+                currentAllocFilePath = '';
+                return;
+            }
+            currentAllocFilePath = filePath;
+            try {
+                const res = await fetch(`/api/allocation/get?file_path=${encodeURIComponent(filePath)}`);
+                const data = await res.json();
+                if (data.found) {
+                    currentAllocTable = data.table;
+                    renderAllocTable(data.table);
+                } else {
+                    currentAllocTable = null;
+                    document.getElementById('allocationContent').style.display = 'block';
+                    document.getElementById('allocationBody').innerHTML = '<tr><td colspan="5" class="text-muted text-center">尚未生成，点击"重新生成"</td></tr>';
+                }
+            } catch(e) {
+                document.getElementById('allocationBody').innerHTML = `<tr><td colspan="5" class="text-danger">加载失败: ${e.message}</td></tr>`;
+            }
+        }
+
+        function renderAllocTable(table) {
+            document.getElementById('allocationContent').style.display = 'block';
+            document.getElementById('allocNovelTitle').textContent = table.novel_title || '';
+            const dt = new Date((table.generated_at || 0) * 1000);
+            document.getElementById('allocGeneratedAt').textContent = dt.toLocaleString();
+            const body = document.getElementById('allocationBody');
+            if (!table.entries || table.entries.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" class="text-muted text-center">暂无分配条目</td></tr>';
+                return;
+            }
+            body.innerHTML = table.entries.map((e, i) => {
+                const srcLabels = { character_override: '角色覆盖', character_category: '分类分配', ai_inferred: 'AI推断', manual: '手动编辑' };
+                const srcLabel = srcLabels[e.source] || e.source;
+                const voiceOpts = availableVoices.map(v => `<option value="${v.id}" ${v.id === e.voice_id ? 'selected' : ''}>${v.name} (${v.id})</option>`).join('');
+                return `<tr>
+                    <td>${escapeHtml(e.character_name || '')}</td>
+                    <td><span class="badge bg-info">${escapeHtml(e.category_label || '-')}</span></td>
+                    <td><select class="form-select form-select-sm alloc-voice-sel" data-idx="${i}">${voiceOpts}</select></td>
+                    <td><span class="badge bg-secondary">${srcLabel}</span></td>
+                    <td><input type="checkbox" class="form-check-input alloc-lock" data-idx="${i}" ${e.locked ? 'checked' : ''}></td>
+                </tr>`;
+            }).join('');
+            // Wire change events and inject play buttons
+            document.querySelectorAll('.alloc-voice-sel').forEach(sel => {
+                sel.onchange = () => {
+                    const idx = parseInt(sel.dataset.idx);
+                    if (currentAllocTable && currentAllocTable.entries[idx]) {
+                        currentAllocTable.entries[idx].voice_id = sel.value;
+                        currentAllocTable.entries[idx].source = 'manual';
+                    }
+                };
+                // Inject play button after each select via DOM
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-sm btn-outline-secondary ms-1';
+                btn.title = '试听';
+                btn.textContent = '▶';
+                btn.onclick = function() { playVoicePreview(this.previousElementSibling); };
+                sel.insertAdjacentElement('afterend', btn);
+            });
+            document.querySelectorAll('.alloc-lock').forEach(cb => {
+                cb.onchange = () => {
+                    const idx = parseInt(cb.dataset.idx);
+                    if (currentAllocTable && currentAllocTable.entries[idx]) {
+                        currentAllocTable.entries[idx].locked = cb.checked;
+                    }
+                };
+            });
+        }
+
+        async function generateAllocationTable() {
+            if (!currentAllocFilePath) return alert('请先选择文件');
+            const config = getAiDialogueConfig();
+            const btn = document.getElementById('btnAllocGenerate');
+            btn.disabled = true;
+            btn.textContent = '生成中...';
+            try {
+                const res = await fetch('/api/allocation/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_path: currentAllocFilePath, config })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    currentAllocTable = data.table;
+                    renderAllocTable(data.table);
+                    showToast('分配表已生成');
+                } else {
+                    alert('生成失败: ' + (data.error || ''));
+                }
+            } catch(e) {
+                alert('网络错误: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '重新生成';
+            }
+        }
+
+        function injectVoicePlayButtons() {
+            // Add play button next to every voice-related select on the page
+            document.querySelectorAll('select[id*="oice"], select[id*="Voice"], select.alloc-voice-sel').forEach(sel => {
+                if (sel.dataset.hasPlayBtn) return;
+                sel.dataset.hasPlayBtn = '1';
+                const wrap = document.createElement('span');
+                wrap.className = 'd-flex gap-1';
+                sel.parentNode.insertBefore(wrap, sel);
+                wrap.appendChild(sel);
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-sm btn-outline-secondary flex-shrink-0';
+                btn.title = '试听';
+                btn.textContent = '▶';
+                btn.onclick = function() { playVoicePreview(this.previousElementSibling); };
+                wrap.appendChild(btn);
+            });
+        }
+
+        let currentAudio = null;
+
+        async function playVoicePreview(selectEl) {
+            if (!selectEl) return;
+            const voiceId = selectEl.value;
+            if (!voiceId) return;
+            const apiUrl = document.getElementById('apiUrl').value.trim();
+            if (!apiUrl) { showToast('请先设置 MultiTTS API 地址'); return; }
+            // Stop current playback
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+            // Visual feedback
+            const btn = selectEl.parentElement.querySelector('button');
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/voice_preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_url: apiUrl, voice_id: voiceId })
+                });
+                if (!res.ok) throw new Error(await res.text());
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                currentAudio = new Audio(url);
+                currentAudio.onended = () => { currentAudio = null; };
+                currentAudio.play();
+                btn.innerHTML = '<i class="bi bi-stop-fill"></i>';
+                btn.classList.remove('btn-outline-secondary');
+                btn.classList.add('btn-warning');
+                currentAudio.onended = () => {
+                    btn.innerHTML = origHtml;
+                    btn.classList.remove('btn-warning');
+                    btn.classList.add('btn-outline-secondary');
+                    currentAudio = null;
+                };
+            } catch(e) {
+                showToast('试听失败: ' + e.message);
+                btn.innerHTML = origHtml;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function saveAllocationTable() {
+            if (!currentAllocTable || !currentAllocFilePath) return;
+            const entries = currentAllocTable.entries || [];
+            let saved = 0;
+            for (const e of entries) {
+                try {
+                    const res = await fetch('/api/allocation/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            file_path: currentAllocFilePath,
+                            character_name: e.character_name,
+                            voice_id: e.voice_id,
+                            locked: e.locked
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.success) saved++;
+                } catch(ex) {}
+            }
+            showToast(`已保存 ${saved}/${entries.length} 条`);
+        }
+
+        // Show allocation card when AI is enabled
+        document.getElementById('aiDialogueEnabled').addEventListener('change', function() {
+            document.getElementById('allocationCard').style.display = this.checked ? '' : 'none';
         });
 
         let isAutoRun = false;
@@ -1183,7 +2189,8 @@
                     pitch_dialogue: parseInt(document.getElementById('pitch_dialogue').value),
                     sub: document.getElementById('enableLrc').checked ? parseInt(document.getElementById('lrcChars').value) : 0,
                     ignore_regex: document.getElementById('ignoreRegex').value,
-                    preserve_structure: document.getElementById('preserveStructure').checked
+                    preserve_structure: document.getElementById('preserveStructure').checked,
+                    ai_dialogue: getAiDialogueConfig()
                 };
             }
 
@@ -1217,6 +2224,7 @@
             const speed = parseInt(document.getElementById('speed').value);
             const pitch = parseInt(document.getElementById('pitch').value);
             const ignoreRegex = document.getElementById('ignoreRegex').value;
+            const aiDialogue = getAiDialogueConfig();
 
             const voiceDialogueId = document.getElementById('voice_dialogue_id').value || null;
             const volumeDialogue = parseInt(document.getElementById('volume_dialogue').value);
@@ -1247,7 +2255,8 @@
                         volume_dialogue: volumeDialogue,
                         speed_dialogue: speedDialogue,
                         pitch_dialogue: pitchDialogue,
-                        ignore_regex: ignoreRegex
+                        ignore_regex: ignoreRegex,
+                        ai_dialogue: aiDialogue
                     })
                 });
                 
@@ -1298,6 +2307,7 @@
             const lrcChars = parseInt(document.getElementById('lrcChars').value);
             const sub = enableLrc ? lrcChars : 0;
             const ignoreRegex = document.getElementById('ignoreRegex').value;
+            const aiDialogue = getAiDialogueConfig();
             
             const isTextMode = document.getElementById('text-tab').classList.contains('active');
             const isFileMode = document.getElementById('file-tab').classList.contains('active');
@@ -1351,6 +2361,7 @@
                     formData.append('file', uploadFile);
                     formData.append('sub', sub);
                     formData.append('ignore_regex', ignoreRegex);
+                    formData.append('ai_dialogue', JSON.stringify(aiDialogue));
                     
                     res = await fetch('/api/synthesize_upload', {
                         method: 'POST',
@@ -1373,7 +2384,8 @@
                             output_name: outputName,
                             sub: sub,
                             concurrency: concurrency,
-                            ignore_regex: ignoreRegex
+                            ignore_regex: ignoreRegex,
+                            ai_dialogue: aiDialogue
                         })
                     });
                 }

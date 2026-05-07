@@ -1,0 +1,20 @@
+{
+  "enabled": false,
+  "api_url": null,
+  "api_key": null,
+  "model": null,
+  "temperature": 0.05,
+  "top_p": 0.3,
+  "max_tokens": 120,
+  "context_chars": 1800,
+  "characters": [
+    {
+      "name": "示例角色",
+      "aliases": ["别名1", "别名2"],
+      "gender": "男",
+      "age": "青年",
+      "voice_id": "microsoft_zh-CN-YunxiNeural",
+      "enabled": true
+    }
+  ]
+}

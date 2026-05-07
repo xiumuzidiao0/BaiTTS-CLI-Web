@@ -1,4 +1,5 @@
 use crate::api::ApiClient;
+use crate::ai;
 use crate::args::Cli;
 use crate::extractor::{self, Book, Chapter};
 use crate::lrc;
@@ -12,7 +13,7 @@ use regex::Regex;
 use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 #[derive(Clone, Debug)]
@@ -20,6 +21,21 @@ pub enum ProcessEvent {
     Log(String),
     Progress { current: usize, total: usize },
     Success { size: u64, output_path: String },
+}
+
+fn limit_chars(text: &str, max_chars: usize) -> String {
+    if max_chars == 0 {
+        return String::new();
+    }
+    text.chars().take(max_chars).collect()
+}
+
+fn trim_for_log(text: &str) -> String {
+    let mut value: String = text.chars().take(40).collect();
+    if text.chars().count() > 40 {
+        value.push_str("...");
+    }
+    value.replace('\n', " ")
 }
 
 async fn process_chapter<F, C, Fut>(
@@ -31,6 +47,7 @@ async fn process_chapter<F, C, Fut>(
     args: &Cli,
     client: &ApiClient,
     blacklist: &Option<Regex>,
+    voice_allocator: &Mutex<ai::VoiceAllocator>,
     callback: F,
     check_cancel: C,
 ) -> Result<()>
@@ -154,8 +171,80 @@ where
             callback(ProcessEvent::Log(format!("正在处理章节 '{}': 批次 {}/{}", chapter.title, i + 1, batches.len())));
         }
         let (target_voice, volume, speed, pitch) = if batch.is_dialogue {
+            let mut dialogue_voice = args.voice_dialogue.as_ref().or(args.voice.as_ref()).cloned();
+            if ai::should_use_ai(&args.ai_dialogue) {
+                let context = limit_chars(&chapter.content, args.ai_dialogue.context_chars);
+                match ai::identify_speaker(&args.ai_dialogue, &batch.text, &context).await {
+                    Ok(speaker) => {
+                        if let Some(character) = ai::match_character(&args.ai_dialogue.characters, &speaker.name) {
+                            let resolved = {
+                                let mut va = voice_allocator.lock().unwrap();
+                                ai::resolve_character_voice(
+                                    &args.ai_dialogue,
+                                    &mut va,
+                                    character,
+                                    speaker.gender.as_deref(),
+                                    speaker.age.as_deref(),
+                                )
+                            };
+                            if let Some(voice_id) = resolved {
+                                dialogue_voice = Some(voice_id.clone());
+                                let cat_label = character.category.as_ref().map(|c| c.label()).unwrap_or("none");
+                                callback(ProcessEvent::Log(format!(
+                                    "AI dialogue: '{}' -> {} (category: {}, voice: {})",
+                                    trim_for_log(&batch.text),
+                                    character.name,
+                                    cat_label,
+                                    voice_id
+                                )));
+                            } else {
+                                callback(ProcessEvent::Log(format!(
+                                    "AI dialogue: '{}' -> {} (no voice in pool, using fallback)",
+                                    trim_for_log(&batch.text),
+                                    character.name
+                                )));
+                            }
+                        } else {
+                            let auto_voice = {
+                                let mut va = voice_allocator.lock().unwrap();
+                                ai::resolve_speaker_voice(
+                                    &args.ai_dialogue,
+                                    &mut va,
+                                    &speaker.name,
+                                    speaker.gender.as_deref(),
+                                    speaker.age.as_deref(),
+                                )
+                            };
+                            if let Some(voice_id) = auto_voice {
+                                dialogue_voice = Some(voice_id.clone());
+                                callback(ProcessEvent::Log(format!(
+                                    "AI dialogue: '{}' -> speaker '{}' ({}/{}), auto pool: {}",
+                                    trim_for_log(&batch.text),
+                                    speaker.name,
+                                    speaker.gender.as_deref().unwrap_or("?"),
+                                    speaker.age.as_deref().unwrap_or("?"),
+                                    voice_id
+                                )));
+                            } else {
+                                callback(ProcessEvent::Log(format!(
+                                    "AI dialogue speaker '{}' ({}/{}) not matched; using default dialogue voice",
+                                    speaker.name,
+                                    speaker.gender.as_deref().unwrap_or("?"),
+                                    speaker.age.as_deref().unwrap_or("?")
+                            )));
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        callback(ProcessEvent::Log(format!(
+                            "AI dialogue assignment failed; using default dialogue voice: {}",
+                            e
+                        )));
+                    }
+                }
+            }
             (
-                args.voice_dialogue.as_ref().or(args.voice.as_ref()).cloned(),
+                dialogue_voice,
                 Some(args.volume_dialogue.unwrap_or(args.volume)),
                 Some(args.speed_dialogue.unwrap_or(args.speed)),
                 Some(args.pitch_dialogue.unwrap_or(args.pitch)),
@@ -264,6 +353,7 @@ pub async fn process_file<F, C, Fut>(
     blacklist: &Option<Regex>,
     callback: F,
     check_cancel: C,
+    allocation_table: Option<Arc<Mutex<ai::VoiceAllocationTable>>>,
 ) -> Result<()>
 where
     F: Fn(ProcessEvent) + Send + Sync + 'static + Clone,
@@ -287,6 +377,15 @@ where
     callback(ProcessEvent::Log(format!("开始多线程合成，并发数: {}", concurrency_limit)));
 
     let book = Arc::new(book);
+    let voice_allocator = Arc::new(Mutex::new(ai::VoiceAllocator::new()));
+
+    // Pre-seed allocator from allocation table if provided
+    if let Some(ref at) = allocation_table {
+        let table = at.lock().unwrap();
+        for entry in &table.entries {
+            voice_allocator.lock().unwrap().pre_seed(&entry.character_name, &entry.voice_id);
+        }
+    }
 
     let mut stream = stream::iter(book.chapters.clone().into_iter().enumerate())
         .map(|(idx, chapter)| {
@@ -297,11 +396,12 @@ where
             let callback = callback.clone();
             let check_cancel = check_cancel.clone();
             let book = Arc::clone(&book);
+            let voice_allocator = Arc::clone(&voice_allocator);
             async move {
                 if check_cancel().await {
                     return Err(anyhow::anyhow!("任务已取消"));
                 }
-                process_chapter(idx, total_chapters, &book, chapter, &book_dir, &args, &client, &blacklist, callback, check_cancel).await
+                process_chapter(idx, total_chapters, &book, chapter, &book_dir, &args, &client, &blacklist, &voice_allocator, callback, check_cancel).await
             }
         })
         .buffer_unordered(concurrency_limit);
@@ -312,6 +412,24 @@ where
                 return Err(e);
             }
                 callback(ProcessEvent::Log(format!("处理章节时发生严重错误: {}", e)));
+        }
+    }
+
+    // Post-collect new entries into allocation table
+    if let Some(ref at) = allocation_table {
+        let mut table = at.lock().unwrap();
+        let va = voice_allocator.lock().unwrap();
+        for (name, voice_id) in va.get_resolved_entries() {
+            if table.lookup(name).is_none() {
+                table.upsert(ai::VoiceAllocationEntry {
+                    character_name: name.clone(),
+                    category: None,
+                    category_label: None,
+                    voice_id: voice_id.clone(),
+                    source: ai::AllocationSource::AIInferred,
+                    locked: false,
+                });
+            }
         }
     }
 
@@ -374,7 +492,7 @@ where
     callback(ProcessEvent::Log("--------------------------------------------------".to_string()));
 
     for entry in entries {
-        if let Err(e) = process_file(&entry, args, client, blacklist, callback.clone(), || async { false }).await {
+        if let Err(e) = process_file(&entry, args, client, blacklist, callback.clone(), || async { false }, None).await {
             callback(ProcessEvent::Log(format!("处理文件 {:?} 时出错: {}", entry, e)));
         }
         callback(ProcessEvent::Log("--------------------------------------------------".to_string()));
