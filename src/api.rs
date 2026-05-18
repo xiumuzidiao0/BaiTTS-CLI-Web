@@ -80,7 +80,9 @@ impl ApiClient {
     pub async fn fetch_voices(&self) -> Result<Vec<Voice>> {
         let url = format!("{}/voices", self.base_url);
 
-        let response = self.send_request_with_retry(|| async { self.client.get(&url).build() }).await?;
+        let response = self
+            .send_request_with_retry(|| async { self.client.get(&url).build() })
+            .await?;
 
         let parsed_response = response
             .json::<VoicesResponse>()
@@ -127,9 +129,15 @@ impl ApiClient {
         }
 
         let request_url = url.to_string();
-        let response = self.send_request_with_retry(|| async { self.client.get(&request_url).build() }).await?;
+        let response = self
+            .send_request_with_retry(|| async { self.client.get(&request_url).build() })
+            .await?;
 
-        let bytes = response.bytes().await.context("读取音频响应体失败")?.to_vec();
+        let bytes = response
+            .bytes()
+            .await
+            .context("读取音频响应体失败")?
+            .to_vec();
         Ok(bytes)
     }
 }

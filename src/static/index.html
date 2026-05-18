@@ -38,6 +38,7 @@
             --task-completed: hsl(var(--hue-success) 60% 42%);
             --task-error: hsl(var(--hue-danger) 75% 55%);
             --task-cancelled: hsl(220 9% 55%);
+            --task-paused: hsl(30 85% 50%);
         }
 
         [data-bs-theme="dark"] {
@@ -164,6 +165,7 @@
         .status-completed { background: hsl(142 60% 45% / .12); color: var(--task-completed); }
         .status-error { background: hsl(0 75% 55% / .12); color: var(--task-error); }
         .status-cancelled { background: hsl(220 9% 55% / .12); color: var(--task-cancelled); }
+        .status-paused { background: hsl(30 85% 50% / .12); color: var(--task-paused); }
 
         /* ============================================
            Task List
@@ -179,6 +181,62 @@
         .task-item.status-completed { border-left-color: var(--task-completed); }
         .task-item.status-error { border-left-color: var(--task-error); }
         .task-item.status-cancelled { border-left-color: var(--task-cancelled); }
+        .tasks-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
+            flex-wrap: wrap;
+        }
+        .tasks-header-title {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            min-height: 1.9rem;
+        }
+        .tasks-header-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: .35rem;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+        .tasks-header-actions .btn {
+            margin: 0 !important;
+            white-space: nowrap;
+        }
+        .task-filterbar {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            flex-wrap: wrap;
+        }
+        .task-filterbar .task-select-all {
+            min-width: 3.25rem;
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            margin: 0;
+        }
+        #taskStatusFilter {
+            width: auto;
+            flex: 0 0 7.5rem;
+        }
+        #taskSearchInput {
+            min-width: 12rem;
+            flex: 1 1 12rem;
+        }
+        #batchActions {
+            flex: 1 1 100%;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: .35rem;
+        }
+        #batchActions .btn {
+            border-radius: var(--btn-radius) !important;
+            white-space: nowrap;
+        }
 
         /* ============================================
            Progress Bar
@@ -242,6 +300,20 @@
            ============================================ */
         #allocationTable { font-size: .85rem; }
         #allocationTable .form-select { font-size: .8rem; padding: .2rem .4rem; }
+        #allocFileList {
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        #allocFileList .alloc-file-item {
+            cursor: pointer;
+        }
+        #allocFileList .alloc-file-item.active .alloc-file-meta,
+        #allocFileList .alloc-file-item.active .alloc-file-detail {
+            color: rgba(255, 255, 255, .8);
+        }
+        #allocFileList .alloc-delete-cb {
+            margin-top: .15rem;
+        }
         .alloc-lock { width: 1rem; height: 1rem; margin: 0; cursor: pointer; accent-color: hsl(var(--hue-primary) 91% 55%); }
 
         /* ============================================
@@ -291,6 +363,214 @@
             box-shadow: var(--shadow-elevated); font-size: .85rem; color: var(--text-primary);
             animation: slideInRight .3s ease;
         }
+
+        /* ============================================
+           Workbench Shell — data-dense operational layout
+           ============================================ */
+        .app-shell {
+            max-width: 1680px;
+            padding-inline: 1.25rem;
+        }
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(360px, 31vw);
+            gap: 1rem;
+            align-items: start;
+        }
+        .workspace-primary,
+        .workspace-rail {
+            min-width: 0;
+        }
+        .workspace-rail {
+            position: sticky;
+            top: 76px;
+            max-height: calc(100vh - 92px);
+            overflow: auto;
+            padding-right: .25rem;
+        }
+        .workspace-rail::-webkit-scrollbar {
+            width: 4px;
+        }
+        .navbar .container {
+            max-width: 1680px;
+        }
+        .app-shell .card {
+            margin-bottom: 1rem;
+        }
+        .app-shell .card-header.bg-primary {
+            background: linear-gradient(180deg, var(--bg-card), var(--bg-hover)) !important;
+            color: var(--text-primary) !important;
+            border-left: 3px solid var(--accent-stripe);
+        }
+        .app-shell .card-header.bg-primary.text-white,
+        .app-shell .card-header.bg-primary .text-white {
+            color: var(--text-primary) !important;
+        }
+        .app-shell .card-header .btn-outline-light {
+            color: var(--text-secondary) !important;
+            border-color: var(--border-light) !important;
+            background: var(--bg-card);
+        }
+        .app-shell .card-header .btn-outline-light:hover {
+            color: var(--text-primary) !important;
+            background: var(--bg-active);
+        }
+        .rail-card .card-body {
+            background: color-mix(in srgb, var(--bg-card), var(--bg-page) 24%);
+        }
+        .control-dock {
+            position: sticky;
+            top: 76px;
+            z-index: 4;
+            padding: .75rem;
+            background: color-mix(in srgb, var(--bg-card), transparent 4%);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-card);
+            backdrop-filter: blur(10px);
+        }
+        .control-dock .btn {
+            min-height: 44px;
+        }
+        #taskList {
+            max-height: min(42vh, 420px) !important;
+            padding: .5rem;
+            background: transparent;
+        }
+        #taskList .list-group-item {
+            border-radius: var(--radius-sm);
+            margin-bottom: .5rem;
+            border: 1px solid var(--border-light);
+            background: var(--bg-card);
+        }
+        .task-row-main {
+            gap: .5rem;
+        }
+        .task-select-hitbox {
+            width: 2.25rem;
+            min-width: 2.25rem;
+            min-height: 2rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .task-select-hitbox .form-check-input {
+            margin: 0;
+        }
+        .task-title-wrap {
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+        .task-title {
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: bottom;
+        }
+        #logs {
+            height: min(36vh, 360px);
+            border-radius: 0;
+        }
+        #allocationContent {
+            border-top: 1px solid var(--border-light);
+            margin-top: 1rem;
+            padding-top: 1rem;
+        }
+        #allocFileList .alloc-file-item {
+            border-inline: 0;
+        }
+        #allocFileList .alloc-file-item.active {
+            background: hsl(var(--hue-primary) 91% 58% / .1);
+            color: var(--text-primary);
+            border-left: 3px solid var(--accent-stripe);
+        }
+        #allocFileList .alloc-file-item.active .alloc-file-meta,
+        #allocFileList .alloc-file-item.active .alloc-file-detail {
+            color: var(--text-primary);
+        }
+        #batchActions {
+            flex-wrap: wrap;
+        }
+        .table-responsive {
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+        }
+        .alert-info {
+            background: hsl(var(--hue-primary) 91% 58% / .08);
+            border-color: hsl(var(--hue-primary) 91% 58% / .18);
+            color: var(--text-secondary);
+        }
+        #settingsPage {
+            max-width: 1280px;
+        }
+        #settingsPage > .card {
+            max-width: none;
+            margin: 0;
+            border: 0 !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            overflow: visible;
+        }
+        #settingsPage > .card > .card-header {
+            display: none;
+        }
+        #settingsPage > .card > .card-body {
+            padding: 0;
+        }
+        #settingsPage > .card > .card-body > .card {
+            max-width: none;
+        }
+        #settingsPage .card-header.bg-primary {
+            background: linear-gradient(180deg, var(--bg-card), var(--bg-hover)) !important;
+            color: var(--text-primary) !important;
+            border-left: 3px solid var(--accent-stripe);
+        }
+        #settingsPage fieldset {
+            border-color: var(--border-light) !important;
+            background: color-mix(in srgb, var(--bg-card), var(--bg-page) 20%);
+        }
+        [data-bs-theme="dark"] .control-dock {
+            background: color-mix(in srgb, var(--bg-card), transparent 8%);
+        }
+        @media (max-width: 1180px) {
+            .workspace-grid {
+                grid-template-columns: 1fr;
+            }
+            .workspace-rail,
+            .control-dock {
+                position: static;
+                max-height: none;
+                overflow: visible;
+            }
+            #taskList,
+            #logs {
+                max-height: 360px !important;
+                height: 300px;
+            }
+        }
+        @media (max-width: 768px) {
+            .app-shell {
+                padding-inline: .75rem;
+            }
+            .card-header {
+                align-items: flex-start !important;
+                gap: .5rem;
+                flex-wrap: wrap;
+            }
+            .card-header > div,
+            .card-header .btn-group {
+                flex-wrap: wrap;
+            }
+            #tasksCard .card-body > .p-2 {
+                flex-wrap: wrap;
+            }
+            #taskSearchInput {
+                min-width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -312,7 +592,9 @@
         </div>
     </nav>
 
-    <div class="container" id="mainPage">
+    <main class="container-fluid app-shell" id="mainPage">
+        <div class="workspace-grid">
+            <section class="workspace-primary">
         <!-- 输入内容 -->
         <div class="card">
             <div class="card-header bg-primary text-white">输入内容</div>
@@ -336,8 +618,8 @@
                                 <label class="form-label visually-hidden">保存文件名</label>
                                 <input type="text" id="outputName" class="form-control" placeholder="保存文件名 (可选，默认为 web_task)">
                             </div>
-                            <button class="btn btn-secondary" id="btnPreview">🎧 试听</button>
-                            <button class="btn btn-outline-primary" id="btnDownloadPreview" style="display:none;">⬇️ 下载</button>
+                            <button class="btn btn-secondary" id="btnPreview"><i class="bi bi-play-circle"></i> 试听</button>
+                            <button class="btn btn-outline-primary" id="btnDownloadPreview" style="display:none;"><i class="bi bi-download"></i> 下载</button>
                         </div>
                         <audio id="audioPreview" controls style="display:none; width: 100%; margin-top: 10px;"></audio>
                     </div>
@@ -350,13 +632,20 @@
                         <input type="file" id="uploadFile" class="form-control">
                     </div>
                 </div>
+                <div class="d-grid gap-2 mt-3 d-md-flex">
+                    <button class="btn btn-outline-primary btn-lg flex-grow-1" id="btnAnalyze">分析角色</button>
+                    <button class="btn btn-outline-danger btn-lg" id="btnStopAnalyze" disabled>停止分析</button>
+                    <button class="btn btn-primary btn-lg flex-grow-1" id="btnStart">开始合成</button>
+                    <button class="btn btn-outline-danger btn-lg" id="btnStopSynthesis" disabled>停止合成</button>
+                    <button class="btn btn-warning btn-lg flex-grow-1" id="btnStop" disabled>暂停</button>
+                </div>
             </div>
         </div>
 
         <!-- 文件管理 -->
         <div class="card">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <span>📂 文件管理</span>
+                <span><i class="bi bi-folder2-open"></i> 文件管理</span>
                 <div class="btn-group btn-group-sm">
                     <input type="radio" class="btn-check" name="fmRoot" id="fmRootBook" value="book" checked>
                     <label class="btn btn-outline-light" for="fmRootBook">书籍目录 (/book)</label>
@@ -392,6 +681,38 @@
                         </tbody>
                     </table>
                 </div>
+                <div id="fmAudioPanel" class="mt-3 border rounded p-2" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                        <div class="small text-muted text-truncate" id="fmAudioTitle">未选择音频</div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fmStopAudio()">
+                            <i class="bi bi-stop-fill"></i> 停止
+                        </button>
+                    </div>
+                    <audio id="fmAudioPlayer" controls style="width: 100%;"></audio>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 使用统计 -->
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <span>AI 使用统计</span>
+                <button type="button" class="btn btn-sm btn-outline-light" onclick="loadAiUsageStats()">刷新</button>
+            </div>
+            <div class="card-body">
+                <div class="row row-cols-2 row-cols-md-5 g-2 text-center">
+                    <div class="col"><div class="border rounded px-1 py-2 h-100"><div class="text-muted small">总请求</div><div class="fs-6 fw-bold" id="aiUsageTotal">-</div><div class="small text-muted" id="aiUsageTokens">tokens -</div></div></div>
+                    <div class="col"><div class="border rounded px-1 py-2 h-100"><div class="text-muted small">章节请求</div><div class="fs-6 fw-bold" id="aiUsageChapter">-</div></div></div>
+                    <div class="col"><div class="border rounded px-1 py-2 h-100"><div class="text-muted small">逐句请求</div><div class="fs-6 fw-bold" id="aiUsageDialogue">-</div></div></div>
+                    <div class="col"><div class="border rounded px-1 py-2 h-100"><div class="text-muted small">429/重试</div><div class="fs-6 fw-bold" id="aiUsageRate">-</div></div></div>
+                    <div class="col"><div class="border rounded px-1 py-2 h-100"><div class="text-muted small">估算费用</div><div class="fs-6 fw-bold" id="aiUsageCost">-</div><div class="small text-muted">按设置单价</div></div></div>
+                </div>
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>小说</th><th>总请求</th><th>Tokens</th><th>估算费用</th><th>章节请求</th><th>逐句请求</th><th>已分析章节</th><th>平均/章</th><th>429</th><th class="text-end">操作</th></tr></thead>
+                        <tbody id="aiUsageNovelBody"><tr><td colspan="10" class="text-muted text-center">暂无统计</td></tr></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -405,7 +726,7 @@
                 </div>
                 <div class="d-grid gap-2">
                     <button class="btn btn-warning btn-lg" id="btnBatchConvert">开始批量转换</button>
-                    <button class="btn btn-outline-success" id="btnAutoRun">🤖 开启自动检测</button>
+                    <button class="btn btn-outline-success" id="btnAutoRun"><i class="bi bi-robot"></i> 开启自动检测</button>
                 </div>
             </div>
         </div>
@@ -421,23 +742,65 @@
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <label class="form-label">选择小说文件</label>
-                    <select class="form-select" id="allocFileSelect" onchange="loadAllocationTable(this.value)">
-                        <option value="">-- 请选择文件 --</option>
+                    <label class="form-label">选择分配表或任务文件</label>
+                    <select class="form-select d-none" id="allocFileSelect" onchange="loadAllocationTable(this.value)">
+                        <option value="">-- 请选择分配表/任务 --</option>
                     </select>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div class="form-text">已有分配表可多选删除</div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSelectedAllocationTables()">删除选中</button>
+                    </div>
+                    <div class="form-text mb-2">点击条目打开，勾选条目删除。</div>
+                    <div id="allocFileList" class="list-group border rounded">
+                        <div class="list-group-item text-muted small">暂无可选分配表</div>
+                    </div>
                 </div>
                 <div id="allocationContent" style="display: none;">
                     <span id="allocNovelTitle" class="fw-bold"></span>
                     <span id="allocGeneratedAt" class="text-muted small ms-2"></span>
+                    <div class="row g-2 mt-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label param-label mb-0">角色名</label>
+                            <input type="text" class="form-control form-control-sm" id="allocAddName" placeholder="唐三">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label param-label mb-0">别名</label>
+                            <input type="text" class="form-control form-control-sm" id="allocAddAliases" placeholder="小三|三哥">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label param-label mb-0">分类</label>
+                            <select class="form-select form-select-sm" id="allocAddCategory"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label param-label mb-0">覆盖声</label>
+                            <select class="form-select form-select-sm" id="allocAddVoice"><option value="">自动</option></select>
+                        </div>
+                        <div class="col-md-2 d-grid">
+                            <button class="btn btn-sm btn-outline-primary mt-3" onclick="addAllocCharacter()">添加角色</button>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center gap-2 mt-3">
+                        <div class="form-text">低置信度条目可先筛选出来确认。</div>
+                        <select class="form-select form-select-sm" id="allocReviewFilter" style="width: 10rem;" onchange="setAllocReviewFilter(this.value)">
+                            <option value="all">全部角色</option>
+                            <option value="pending">待确认</option>
+                        </select>
+                    </div>
                     <div class="table-responsive mt-2">
                         <table class="table table-sm align-middle" id="allocationTable">
                             <thead>
                                 <tr>
                                     <th>角色名</th>
+                                    <th>别名</th>
                                     <th>分类</th>
                                     <th>分配声音</th>
+                                    <th>音量</th>
+                                    <th>语速</th>
+                                    <th>音调</th>
+                                    <th>确认</th>
                                     <th>来源</th>
                                     <th>锁定</th>
+                                    <th>操作</th>
                                 </tr>
                             </thead>
                             <tbody id="allocationBody"></tbody>
@@ -447,28 +810,82 @@
             </div>
         </div>
 
+            </section>
+            <aside class="workspace-rail">
+        <!-- 声音参数 -->
+        <div class="card rail-card">
+            <div class="card-header bg-primary text-white">声音参数</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label param-label">选择声音</label>
+                    <select id="voiceSelect" class="form-select">
+                        <option value="" disabled selected>请先获取声音列表...</option>
+                    </select>
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-4">
+                        <label class="form-label param-label">语速 <span id="speedVal">50</span></label>
+                        <input type="range" class="form-range" id="speed" min="0" max="100" value="50">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label param-label">音量 <span id="volumeVal">100</span></label>
+                        <input type="range" class="form-range" id="volume" min="0" max="100" value="100">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label param-label">音调 <span id="pitchVal">50</span></label>
+                        <input type="range" class="form-range" id="pitch" min="0" max="100" value="50">
+                    </div>
+                </div>
+
+                <fieldset class="mt-3 border p-3 rounded">
+                    <legend class="w-auto px-2 fs-6 fw-bold"><i class="bi bi-chat-quote"></i> 对话独立设置</legend>
+                    <div class="mb-3">
+                        <label class="form-label param-label">对话发音人</label>
+                        <select id="voice_dialogue_id" class="form-select">
+                            <option value="">-- 跟随主发音人 --</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <label class="form-label param-label">语速 <span id="val_speed_dialogue">50</span></label>
+                            <input type="range" class="form-range" id="speed_dialogue" min="0" max="100" value="50">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label param-label">音量 <span id="val_volume_dialogue">50</span></label>
+                            <input type="range" class="form-range" id="volume_dialogue" min="0" max="100" value="50">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label param-label">音调 <span id="val_pitch_dialogue">50</span></label>
+                            <input type="range" class="form-range" id="pitch_dialogue" min="0" max="100" value="50">
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+
         <!-- 任务进度 -->
-        <div class="card" id="tasksCard" style="display: none;">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <span>任务进度</span>
-                <div>
-                    <button class="btn btn-sm btn-outline-warning me-2" onclick="retryAllFailed()">全部重试</button>
-                    <button class="btn btn-sm btn-outline-danger me-2" onclick="clearAllTasks()">清空所有</button>
-                    <button class="btn btn-sm btn-outline-light me-2" onclick="clearCompletedTasks()">清除已完成</button>
-                    <button class="btn btn-sm btn-danger" onclick="resetHistory()" title="彻底清除所有记录（包括已完成的），允许重新扫描">彻底重置</button>
-                    <span class="badge bg-light text-dark" id="taskCountBadge">0/0</span>
+        <div class="card rail-card" id="tasksCard" style="display: none;">
+            <div class="card-header bg-primary text-white tasks-header">
+                <span class="tasks-header-title">任务进度 <span class="badge bg-light text-dark" id="taskCountBadge">0/0</span></span>
+                <div class="tasks-header-actions">
+                    <button class="btn btn-sm btn-outline-warning" onclick="retryAllFailed()" title="重试所有失败、已取消或已暂停的任务">全部重试</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="cancelAllTasks()" title="取消所有等待中、处理中、已暂停的任务">全部取消</button>
+                    <button class="btn btn-sm btn-outline-light" onclick="clearCompletedTasks()" title="从列表中隐藏已完成的任务（不删除文件）">隐藏已完成</button>
                 </div>
             </div>
             <div class="card-body p-0">
-                <div class="p-2 border-bottom d-flex gap-2 align-items-center">
-                    <div class="form-check mb-0">
+                <div class="p-2 border-bottom task-filterbar">
+                    <div class="form-check task-select-all">
                         <input class="form-check-input" type="checkbox" id="selectAllTasks">
-                        <label class="form-check-label" for="selectAllTasks" style="white-space: nowrap;">全选</label>
+                        <label class="form-check-label" for="selectAllTasks">全选</label>
                     </div>
-                    <select class="form-select form-select-sm" id="taskStatusFilter" style="max-width: 120px;">
+                    <select class="form-select form-select-sm" id="taskStatusFilter">
                         <option value="all">全部状态</option>
                         <option value="pending">等待中</option>
                         <option value="processing">进行中</option>
+                        <option value="paused">已暂停</option>
                         <option value="completed">已完成</option>
                         <option value="error">失败</option>
                         <option value="cancelled">已取消</option>
@@ -477,6 +894,7 @@
                     <div class="btn-group btn-group-sm" id="batchActions" style="display:none;">
                         <button class="btn btn-outline-danger" onclick="batchCancel()">批量取消</button>
                         <button class="btn btn-outline-warning" onclick="batchRetry()">批量重试</button>
+                        <button class="btn btn-outline-danger" id="btnDeleteSelectedTasks" onclick="deleteSelectedTasks()" disabled><i class="bi bi-trash"></i> 删除 0 项</button>
                     </div>
                 </div>
                 <div class="list-group list-group-flush" id="taskList" style="max-height: 300px; overflow-y: auto;">
@@ -499,14 +917,8 @@
             </div>
         </div>
 
-        <!-- 控制 -->
-        <div class="d-grid gap-2 mb-4 d-md-flex">
-            <button class="btn btn-primary btn-lg flex-grow-1" id="btnStart">开始合成</button>
-            <button class="btn btn-danger btn-lg flex-grow-1" id="btnStop" disabled>停止合成</button>
-        </div>
-
         <!-- 日志 -->
-        <div class="card">
+        <div class="card rail-card">
             <div class="card-header bg-primary text-white">运行日志</div>
             <div class="card-body p-0">
                 <div id="logs">
@@ -514,8 +926,9 @@
                 </div>
             </div>
         </div>
-    </div>
-    </div>
+            </aside>
+        </div>
+    </main>
 
     <!-- 设置页面 -->
     <div class="container" id="settingsPage" style="display:none;">
@@ -534,33 +947,11 @@
                         </div>
                     </div>
 
-                    <!-- 参数设置 -->
+                    <!-- 任务设置 -->
                     <div class="card">
-                        <div class="card-header bg-primary text-white">声音参数</div>
+                        <div class="card-header bg-primary text-white">任务与 AI 设置</div>
                         <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-label param-label">选择声音</label>
-                                <select id="voiceSelect" class="form-select">
-                                    <option value="" disabled selected>请先获取声音列表...</option>
-                                </select>
-                            </div>
-                            
                             <div class="row">
-                                <div class="col-md-4">
-                                    <label class="form-label param-label">语速 (Speed): <span id="speedVal">50</span></label>
-                                    <input type="range" class="form-range" id="speed" min="0" max="100" value="50">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label param-label">音量 (Volume): <span id="volumeVal">100</span></label>
-                                    <input type="range" class="form-range" id="volume" min="0" max="100" value="100">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label param-label">音调 (Pitch): <span id="pitchVal">50</span></label>
-                                    <input type="range" class="form-range" id="pitch" min="0" max="100" value="50">
-                                </div>
-                            </div>
-
-                            <div class="row mt-3">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label param-label">并发数 (Concurrency): <span id="concurrencyVal">4</span></label>
                                     <input type="range" class="form-range" id="concurrency" min="1" max="32" value="4">
@@ -572,41 +963,29 @@
                                         <label class="form-check-label" for="preserveStructure">保持目录结构 (Preserve Structure)</label>
                                     </div>
                                 </div>
+                                <div class="col-md-6 d-flex align-items-center">
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" id="analysisOnly">
+                                        <label class="form-check-label" for="analysisOnly">转换时仅分析</label>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <!-- 对话部分独立设置 -->
-                            <fieldset class="mt-3 border p-3 rounded">
-                                <legend class="w-auto px-2 fs-6 fw-bold">🗣️ 对话部分独立设置 (可选)</legend>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label param-label">对话发音人</label>
-                                    <select id="voice_dialogue_id" class="form-select">
-                                        <option value="">-- 跟随主发音人 --</option>
-                                    </select>
-                                    <div class="form-text">若不选择，则对话部分使用主发音人。</div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <label class="form-label param-label">对话语速: <span id="val_speed_dialogue">50</span></label>
-                                        <input type="range" class="form-range" id="speed_dialogue" min="0" max="100" value="50">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label param-label">对话音量: <span id="val_volume_dialogue">50</span></label>
-                                        <input type="range" class="form-range" id="volume_dialogue" min="0" max="100" value="50">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label param-label">对话音调: <span id="val_pitch_dialogue">50</span></label>
-                                        <input type="range" class="form-range" id="pitch_dialogue" min="0" max="100" value="50">
-                                    </div>
-                                </div>
-                            </fieldset>
 
                             <fieldset class="mt-3 border p-3 rounded">
                                 <legend class="w-auto px-2 fs-6 fw-bold">AI 对话分配</legend>
                                 <div class="form-check form-switch mb-3">
                                     <input class="form-check-input" type="checkbox" id="aiDialogueEnabled">
                                     <label class="form-check-label" for="aiDialogueEnabled">启用 AI 说话人识别</label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="aiSaveCrowdCharacters">
+                                    <label class="form-check-label" for="aiSaveCrowdCharacters">保存群众角色到分配表</label>
+                                    <div class="form-text">关闭时，群众角色只临时分配声音，不写入角色声音分配表。</div>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="aiChapterAnalysisEnabled">
+                                    <label class="form-check-label" for="aiChapterAnalysisEnabled">启用章节级 AI 对话分析</label>
+                                    <div class="form-text">开启后会先按章节批量分析对话和角色对应，减少逐句请求。</div>
                                 </div>
                                 <div class="row g-2">
                                     <div class="col-md-6">
@@ -615,7 +994,12 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label param-label">API 密钥</label>
-                                        <input type="password" class="form-control" id="aiApiKey" placeholder="多个 Key 用 @@ 分隔">
+                                        <div class="input-group">
+                                            <input type="password" class="form-control" id="aiApiKey" placeholder="多个 Key 用 @@ 分隔">
+                                            <button class="btn btn-outline-secondary" type="button" id="btnToggleAiApiKey" onclick="toggleAiApiKeyVisibility()" title="显示 API 密钥" aria-label="显示 API 密钥">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label param-label">模型名</label>
@@ -637,6 +1021,18 @@
                                         <label class="form-label param-label">上下文长度</label>
                                         <input type="number" class="form-control" id="aiContextChars" min="200" max="8000" value="1800">
                                     </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label param-label">429 冷却秒数</label>
+                                        <input type="number" class="form-control" id="aiRateLimitCooldown" min="5" max="600" value="60">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label param-label">输入单价/百万 Tokens</label>
+                                        <input type="number" class="form-control" id="aiPromptPricePerM" min="0" step="0.0001" value="0">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label param-label">输出单价/百万 Tokens</label>
+                                        <input type="number" class="form-control" id="aiCompletionPricePerM" min="0" step="0.0001" value="0">
+                                    </div>
                                 </div>
                                 <div class="row g-2 mt-2">
                                     <div class="col-auto">
@@ -657,71 +1053,8 @@
                                     <div class="accordion" id="voicePoolAccordion"></div>
                                 </div>
 
-                                <!-- Character Table -->
-                                <div class="border-top mt-3 pt-3">
-                                    <div class="row g-2 align-items-end">
-                                        <div class="col-md-2">
-                                            <label class="form-label param-label">角色名</label>
-                                            <input type="text" class="form-control" id="aiRoleName" placeholder="角色名">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label class="form-label param-label">别名</label>
-                                            <input type="text" class="form-control" id="aiRoleAliases" placeholder="别名用 | 分隔">
-                                        </div>
-                                        <div class="col-md-1">
-                                            <label class="form-label param-label">性别</label>
-                                            <select class="form-select" id="aiRoleGender">
-                                                <option value="">-</option>
-                                                <option value="男">男</option>
-                                                <option value="女">女</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label class="form-label param-label">年龄</label>
-                                            <select class="form-select" id="aiRoleAge">
-                                                <option value="">-</option>
-                                                <option value="儿童">儿童</option>
-                                                <option value="少年">少年</option>
-                                                <option value="青年">青年</option>
-                                                <option value="中年">中年</option>
-                                                <option value="老年">老年</option>
-                                                <option value="女童">女童</option>
-                                                <option value="少女">少女</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label class="form-label param-label">分类</label>
-                                            <select class="form-select" id="aiRoleCategory"></select>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label class="form-label param-label">覆盖声</label>
-                                            <select class="form-select" id="aiRoleVoice"><option value="">自动</option></select>
-                                        </div>
-                                        <div class="col-md-1 d-grid">
-                                            <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddAiRole">添加</button>
-                                        </div>
-                                    </div>
-                                    <div class="table-responsive mt-3">
-                                        <table class="table table-sm align-middle">
-                                            <thead>
-                                                <tr>
-                                                    <th>角色名</th>
-                                                    <th>别名</th>
-                                                    <th>性别</th>
-                                                    <th>年龄</th>
-                                                    <th>分类</th>
-                                                    <th>覆盖声音</th>
-                                                    <th class="text-end">操作</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="aiRolesBody">
-                                                <tr><td colspan="7" class="text-muted text-center">暂无角色</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div class="mt-2 text-end">
-                                        <button type="button" class="btn btn-outline-success btn-sm" id="btnSaveAiConfig" onclick="saveAiDialogueConfigToServer()">保存 AI 配置</button>
-                                    </div>
+                                <div class="mt-2 text-end">
+                                    <button type="button" class="btn btn-outline-success btn-sm" id="btnSaveAiConfig" onclick="saveAiDialogueConfigToServer()">保存 AI 配置</button>
                                 </div>
                             </fieldset>
 
@@ -733,6 +1066,36 @@
                                     </div>
                                 </div>
                             </div>
+                            <fieldset class="mt-3 border border-danger-subtle rounded p-3">
+                                <legend class="w-auto px-2 fs-6 fw-bold text-danger">删除策略</legend>
+                            <div class="row mt-0">
+                                <div class="col-md-12">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="deleteTaskAllocations">
+                                        <label class="form-check-label" for="deleteTaskAllocations">删除任务时同步删除对应分配表</label>
+                                    </div>
+                                    <div class="form-text">开启后，删除任务记录时会同时删除对应角色声音分配表；不会删除源文件或音频文件。</div>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="deleteTaskOutputs">
+                                        <label class="form-check-label" for="deleteTaskOutputs">删除任务时同步删除对应输出文件</label>
+                                    </div>
+                                    <div class="form-text">开启后，删除任务记录时会同时删除对应输出目录或文件；不会删除源文件。</div>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="deleteTaskSources">
+                                        <label class="form-check-label" for="deleteTaskSources">删除任务时同步删除源文件</label>
+                                    </div>
+                                    <div class="form-text">开启后，删除任务记录时会同时删除对应输入文件；不会删除目录或输出文件。</div>
+                                </div>
+                            </div>
+                            </fieldset>
                             <div class="row mt-2" id="lrcConfig" style="display: none;">
                                 <div class="col-md-6">
                                     <label class="form-label">每行最大字符数</label>
@@ -750,7 +1113,8 @@
                                 </div>
                             </div>
                             <div class="mt-3 text-end">
-                                <button class="btn btn-outline-secondary btn-sm" id="btnResetDefaults">↺ 恢复默认设置</button>
+                                <button class="btn btn-outline-primary btn-sm me-2" id="btnSaveSettings" onclick="saveUserSettings()">保存设置</button>
+                                <button class="btn btn-outline-secondary btn-sm" id="btnResetDefaults"><i class="bi bi-arrow-counterclockwise"></i> 恢复默认设置</button>
                             </div>
                         </div>
                     </div>
@@ -827,13 +1191,18 @@
 
     <script>
         let currentTasksMap = {};
+        let currentTaskGroupsMap = {};
+        let currentTasks = [];
         let sysDefaults = { volume: 50, speed: 50, pitch: 50 };
-        let aiRoles = [];
         const VOICE_CATEGORIES = ['男童','女童','少男','少女','男青年','女青年','男中年','女中年','男老年','女老年'];
         let voicePool = {};
         let availableVoices = [];
         
         let selectedTaskIds = new Set();
+        let isDeletingTasks = false;
+        let isUpdatingTasks = false;
+        let pendingTasksRefresh = false;
+        let synthesisBoundaryPromptedTaskIds = new Set();
         let currentFilteredTasks = [];
         let currentPage = 1;
         const itemsPerPage = 10;
@@ -860,6 +1229,7 @@
             initTheme();
             await loadInitialData();
             loadLocalStorageSettings();
+            loadAiUsageStats();
             checkAutoRunStatus();
             fmLoadFiles(); // 加载文件列表
             loadAllocFileList();
@@ -905,6 +1275,7 @@
                     document.getElementById(id + 'Val').innerText = val;
                 }
                 document.getElementById(id).addEventListener('input', (e) => {
+                    document.getElementById(id + 'Val').innerText = e.target.value;
                     localStorage.setItem(id, e.target.value);
                 });
             });
@@ -922,6 +1293,29 @@
             const preserveStructure = document.getElementById('preserveStructure');
             preserveStructure.addEventListener('change', (e) => {
                 saveUserSettings();
+            });
+            const analysisOnly = document.getElementById('analysisOnly');
+            analysisOnly.addEventListener('change', () => {
+                saveUserSettings();
+            });
+            const deleteTaskAllocations = document.getElementById('deleteTaskAllocations');
+            deleteTaskAllocations.addEventListener('change', () => {
+                saveUserSettings();
+            });
+            const deleteTaskOutputs = document.getElementById('deleteTaskOutputs');
+            deleteTaskOutputs.addEventListener('change', () => {
+                saveUserSettings();
+            });
+            const deleteTaskSources = document.getElementById('deleteTaskSources');
+            deleteTaskSources.addEventListener('change', () => {
+                saveUserSettings();
+            });
+            ['aiPromptPricePerM', 'aiCompletionPricePerM'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', () => {
+                    saveUserSettings();
+                    loadAiUsageStats();
+                });
             });
 
             loadAiDialogueSettings();
@@ -941,34 +1335,114 @@
             document.getElementById('aiTopP').value = config.top_p ?? 0.3;
             document.getElementById('aiMaxTokens').value = config.max_tokens ?? 120;
             document.getElementById('aiContextChars').value = config.context_chars ?? 1800;
-            aiRoles = Array.isArray(config.characters) ? config.characters : [];
+            document.getElementById('aiRateLimitCooldown').value = config.rate_limit_cooldown_secs ?? 60;
+            document.getElementById('aiSaveCrowdCharacters').checked = !!config.save_crowd_characters;
+            document.getElementById('aiChapterAnalysisEnabled').checked = config.chapter_analysis_enabled !== false;
             voicePool = config.voice_pool?.entries || {};
-            ['aiDialogueEnabled','aiApiUrl','aiApiKey','aiModel','aiTemperature','aiTopP','aiMaxTokens','aiContextChars'].forEach(id => {
+            ['aiDialogueEnabled','aiSaveCrowdCharacters','aiChapterAnalysisEnabled','aiApiUrl','aiApiKey','aiModel','aiTemperature','aiTopP','aiMaxTokens','aiContextChars','aiRateLimitCooldown'].forEach(id => {
                 document.getElementById(id).removeEventListener('input', saveAiDialogueSettings);
                 document.getElementById(id).removeEventListener('change', saveAiDialogueSettings);
                 document.getElementById(id).addEventListener('input', saveAiDialogueSettings);
                 document.getElementById(id).addEventListener('change', saveAiDialogueSettings);
             });
-            document.getElementById('btnAddAiRole').removeEventListener('click', addAiRole);
-            document.getElementById('btnAddAiRole').addEventListener('click', addAiRole);
-            populateAiRoleVoiceSelect();
-            populateCategorySelect();
             renderVoicePool();
-            renderAiRoles();
+            populateAllocAddSelects();
             // Sync allocation card visibility
             document.getElementById('allocationCard').style.display = !!config.enabled ? '' : 'none';
         }
 
-        function populateCategorySelect() {
-            const sel = document.getElementById('aiRoleCategory');
-            if (!sel) return;
-            sel.innerHTML = '<option value="">-- 选择分类 --</option>';
-            VOICE_CATEGORIES.forEach(cat => {
-                const opt = document.createElement('option');
-                opt.value = cat;
-                opt.text = cat;
-                sel.appendChild(opt);
+        function toggleAiApiKeyVisibility() {
+            const input = document.getElementById('aiApiKey');
+            const btn = document.getElementById('btnToggleAiApiKey');
+            if (!input || !btn) return;
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.title = show ? '隐藏 API 密钥' : '显示 API 密钥';
+            btn.setAttribute('aria-label', btn.title);
+            btn.innerHTML = `<i class="bi ${show ? 'bi-eye-slash' : 'bi-eye'}"></i>`;
+        }
+
+        function populateAllocAddSelects() {
+            // Populate category select in allocation card
+            const catSel = document.getElementById('allocAddCategory');
+            if (catSel) {
+                catSel.innerHTML = '<option value="">-- 分类 --</option>';
+                VOICE_CATEGORIES.forEach(cat => { const o = document.createElement('option'); o.value = cat; o.text = cat; catSel.appendChild(o); });
+            }
+            // Populate override voice select in allocation card
+            const vSel = document.getElementById('allocAddVoice');
+            if (vSel && vSel.options.length <= 1) {
+                availableVoices.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.text = `${v.name}`; vSel.appendChild(o); });
+            }
+        }
+
+        function addAllocCharacter() {
+            const name = document.getElementById('allocAddName').value.trim();
+            const aliases = document.getElementById('allocAddAliases').value.trim();
+            const cat = document.getElementById('allocAddCategory').value;
+            const voiceOverride = document.getElementById('allocAddVoice').value;
+            if (!name) return alert('请输入角色名');
+            if (!currentAllocTable) {
+                currentAllocTable = { schema_version: 2, file_path: currentAllocFilePath, novel_title: '', entries: [], generated_at: 0 };
+            }
+            currentAllocTable.schema_version = currentAllocTable.schema_version || 2;
+            currentAllocTable.entries = currentAllocTable.entries.filter(e => e.character_name !== name);
+            currentAllocTable.entries.push({
+                character_name: name,
+                aliases: aliases ? aliases.split('|').map(s => s.trim()).filter(Boolean) : [],
+                category_label: cat || null,
+                voice_id: voiceOverride || null,
+                source: 'manual',
+                locked: true,
+                needs_review: false
             });
+            // Save to server
+            if (currentAllocFilePath) {
+                fetch('/api/allocation/update', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_path: currentAllocFilePath, character_name: name, voice_id: voiceOverride || '', locked: true })
+                }).catch(() => {});
+            }
+            document.getElementById('allocAddName').value = '';
+            document.getElementById('allocAddAliases').value = '';
+            regenerateAllocFromEntries();
+        }
+
+        function regenerateAllocFromEntries() {
+            if (!currentAllocTable) return;
+            // Generate allocation from current entries + voice pool
+            const config = getAiDialogueConfig();
+            config.characters = currentAllocTable.entries.map(e => ({
+                name: e.character_name,
+                aliases: e.aliases || [],
+                gender: null,
+                age: null,
+                category: e.category_label || null,
+                voice_id: e.voice_id || null,
+                enabled: true
+            }));
+            generateAllocationTableWithConfig(config);
+        }
+
+        async function generateAllocationTableWithConfig(config) {
+            if (!currentAllocFilePath) return;
+            const btn = document.getElementById('btnAllocGenerate');
+            btn.disabled = true; btn.textContent = '生成中...';
+            try {
+                const res = await fetch('/api/allocation/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_path: currentAllocFilePath, config }) });
+                const data = await res.json();
+                if (data.success) {
+                    currentAllocTable = data.table;
+                    currentAllocSignature = allocationSignature(data.table);
+                    currentAllocDirty = false;
+                    upsertAllocationListFromTable(data.table);
+                    renderAllocationMultiSelect();
+                    renderAllocTable(data.table);
+                    showToast('分配表已更新');
+                }
+                else { alert('生成失败: ' + (data.error || '')); }
+            } catch(e) { alert('网络错误: ' + e.message); }
+            finally { btn.disabled = false; btn.textContent = '重新生成'; }
         }
 
         function renderVoicePool() {
@@ -1072,7 +1546,10 @@
                 top_p: parseFloat(document.getElementById('aiTopP').value || '0.3'),
                 max_tokens: parseInt(document.getElementById('aiMaxTokens').value || '120'),
                 context_chars: parseInt(document.getElementById('aiContextChars').value || '1800'),
-                characters: aiRoles,
+                rate_limit_cooldown_secs: parseInt(document.getElementById('aiRateLimitCooldown').value || '60'),
+                save_crowd_characters: document.getElementById('aiSaveCrowdCharacters').checked,
+                chapter_analysis_enabled: document.getElementById('aiChapterAnalysisEnabled').checked,
+                characters: [],
                 voice_pool: { entries: voicePool }
             };
         }
@@ -1080,10 +1557,20 @@
         async function saveUserSettings() {
             const body = {
                 preserve_structure: document.getElementById('preserveStructure').checked,
+                analysis_only: document.getElementById('analysisOnly').checked,
                 enable_lrc: document.getElementById('enableLrc').checked,
                 lrc_chars: parseInt(document.getElementById('lrcChars').value) || 15,
+                delete_task_allocations: document.getElementById('deleteTaskAllocations').checked,
+                delete_task_outputs: document.getElementById('deleteTaskOutputs').checked,
+                delete_task_sources: document.getElementById('deleteTaskSources').checked,
+                ai_prompt_price_per_m: parseFloat(document.getElementById('aiPromptPricePerM').value || '0'),
+                ai_completion_price_per_m: parseFloat(document.getElementById('aiCompletionPricePerM').value || '0'),
             };
-            try { await fetch('/api/save_settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch(e) {}
+            try {
+                const res = await fetch('/api/save_settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const data = await res.json();
+                if (data.success) { showToast('设置已保存'); } else { showToast('保存失败: ' + (data.message || '')); }
+            } catch(e) { showToast('保存失败: ' + e.message); }
         }
 
         function showToast(msg) {
@@ -1092,6 +1579,76 @@
             toast.textContent = msg;
             document.body.appendChild(toast);
             setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .3s'; setTimeout(() => toast.remove(), 300); }, 2500);
+        }
+
+        async function loadAiUsageStats() {
+            try {
+                const res = await fetch('/api/ai_usage_stats');
+                const stats = await res.json();
+                const total = stats.total_requests || 0;
+                document.getElementById('aiUsageTotal').textContent = total;
+                const estimatedTokens = stats.estimated_tokens || 0;
+                document.getElementById('aiUsageTokens').textContent = `tokens ${stats.total_tokens || 0}${estimatedTokens ? `（估算 ${estimatedTokens}）` : ''}`;
+                document.getElementById('aiUsageChapter').textContent = stats.chapter_requests || 0;
+                document.getElementById('aiUsageDialogue').textContent = stats.dialogue_requests || 0;
+                document.getElementById('aiUsageRate').textContent = `${stats.rate_limited_requests || 0}/${stats.retry_attempts || 0}`;
+                const promptPrice = parseFloat(document.getElementById('aiPromptPricePerM')?.value || '0');
+                const completionPrice = parseFloat(document.getElementById('aiCompletionPricePerM')?.value || '0');
+                const totalCost = ((stats.prompt_tokens || 0) / 1000000 * promptPrice)
+                    + ((stats.completion_tokens || 0) / 1000000 * completionPrice);
+                const avgCostPerToken = (stats.total_tokens || 0) > 0 ? totalCost / (stats.total_tokens || 1) : 0;
+                document.getElementById('aiUsageCost').textContent = totalCost > 0 ? `$${totalCost.toFixed(4)}` : '-';
+
+                const body = document.getElementById('aiUsageNovelBody');
+                const novels = Object.entries(stats.by_novel || {})
+                    .sort((a, b) => (b[1].updated_at || 0) - (a[1].updated_at || 0));
+                if (novels.length === 0) {
+                    body.innerHTML = '<tr><td colspan="10" class="text-muted text-center">暂无统计</td></tr>';
+                    return;
+                }
+                body.innerHTML = novels.map(([name, item]) => {
+                    const chapters = item.chapters_analyzed || 0;
+                    const avg = chapters > 0 ? ((item.requests || 0) / chapters).toFixed(1) : '-';
+                    const tokenText = `${item.total_tokens || 0}${item.estimated_tokens ? `（估 ${item.estimated_tokens}）` : ''}`;
+                    const novelCost = (item.total_tokens || 0) * avgCostPerToken;
+                    return `<tr>
+                        <td class="text-truncate" style="max-width: 14rem;" title="${escapeAttr(name)}">${escapeHtml(name)}</td>
+                        <td>${item.requests || 0}</td>
+                        <td>${tokenText}</td>
+                        <td>${novelCost > 0 ? `$${novelCost.toFixed(4)}` : '-'}</td>
+                        <td>${item.chapter_requests || 0}</td>
+                        <td>${item.dialogue_requests || 0}</td>
+                        <td>${chapters}</td>
+                        <td>${avg}</td>
+                        <td>${item.rate_limited_requests || 0}</td>
+                        <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-novel="${escapeAttr(name)}" onclick="deleteAiUsageNovel(this.dataset.novel)">删除</button></td>
+                    </tr>`;
+                }).join('');
+            } catch (e) {
+                const body = document.getElementById('aiUsageNovelBody');
+                if (body) body.innerHTML = `<tr><td colspan="10" class="text-danger">统计加载失败: ${escapeHtml(e.message)}</td></tr>`;
+            }
+        }
+
+        async function deleteAiUsageNovel(name) {
+            if (!name) return;
+            if (!confirm(`确定删除《${name}》的 AI 统计吗？`)) return;
+            try {
+                const res = await fetch('/api/ai_usage_stats/novel/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ novel_title: name })
+                });
+                const data = await readApiResponse(res);
+                if (data.success) {
+                    showToast(data.message || '已删除统计');
+                    loadAiUsageStats();
+                } else {
+                    showToast(data.message || '删除失败');
+                }
+            } catch (e) {
+                showToast('删除失败: ' + e.message);
+            }
         }
 
         function saveAiDialogueSettings() {
@@ -1195,72 +1752,26 @@
             }
         }
 
-        function populateAiRoleVoiceSelect() {
-            const select = document.getElementById('aiRoleVoice');
-            if (!select) return;
-            select.innerHTML = '<option value="">选择声音</option>';
-            availableVoices.forEach(v => {
-                const opt = document.createElement('option');
-                opt.value = v.id;
-                opt.text = `${v.name} (${v.id})`;
-                select.appendChild(opt);
-            });
-        }
-
-        function addAiRole() {
-            const name = document.getElementById('aiRoleName').value.trim();
-            const category = document.getElementById('aiRoleCategory').value;
-            const voiceOverride = document.getElementById('aiRoleVoice').value;
-            if (!name) return alert('请设置角色名');
-            aiRoles = aiRoles.filter(role => role.name !== name);
-            aiRoles.push({
-                name,
-                aliases: document.getElementById('aiRoleAliases').value.split('|').map(v => v.trim()).filter(Boolean),
-                gender: document.getElementById('aiRoleGender').value || null,
-                age: document.getElementById('aiRoleAge').value || null,
-                category: category || null,
-                voice_id: voiceOverride || null,
-                enabled: true
-            });
-            ['aiRoleName','aiRoleAliases'].forEach(id => document.getElementById(id).value = '');
-            saveAiDialogueSettings();
-            renderAiRoles();
-        }
-
-        function renderAiRoles() {
-            const body = document.getElementById('aiRolesBody');
-            if (!body) return;
-            if (!aiRoles.length) {
-                body.innerHTML = '<tr><td colspan="7" class="text-muted text-center">暂无角色</td></tr>';
-                return;
-            }
-            body.innerHTML = aiRoles.map((role, index) => {
-                const catLabel = role.category || '-';
-                const voiceLabelText = role.voice_id ? voiceLabel(role.voice_id) : '<span class="text-muted">自动(声音池)</span>';
-                return `<tr>
-                    <td>${escapeHtml(role.name || '')}</td>
-                    <td>${escapeHtml((role.aliases || []).join('|'))}</td>
-                    <td>${escapeHtml(role.gender || '-')}</td>
-                    <td>${escapeHtml(role.age || '-')}</td>
-                    <td><span class="badge bg-info">${escapeHtml(catLabel)}</span></td>
-                    <td>${voiceLabelText}</td>
-                    <td class="text-end">
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAiRole(${index})">删除</button>
-                    </td>
-                </tr>`;
-            }).join('');
-        }
-
         function escapeHtml(str) {
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
         }
 
-        function removeAiRole(index) {
-            aiRoles.splice(index, 1);
-            saveAiDialogueSettings();
-            renderAiRoles();
+        function escapeAttr(str) {
+            return escapeHtml(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        async function readApiResponse(res) {
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                return {
+                    success: false,
+                    message: text || `HTTP ${res.status}`
+                };
+            }
         }
 
         // 参数显示同步
@@ -1351,8 +1862,8 @@
             });
             const savedDialogVoice = localStorage.getItem('voice_dialogue_id');
             if (savedDialogVoice) dialogSelect.value = savedDialogVoice;
-            populateAiRoleVoiceSelect();
-            renderAiRoles();
+            if (typeof renderVoicePool === 'function') renderVoicePool();
+            if (typeof populateAllocAddSelects === 'function') populateAllocAddSelects();
             setTimeout(injectVoicePlayButtons, 200);
         }
 
@@ -1407,11 +1918,29 @@
                 if (data.preserve_structure !== undefined) {
                     document.getElementById('preserveStructure').checked = data.preserve_structure;
                 }
+                if (data.analysis_only !== undefined) {
+                    document.getElementById('analysisOnly').checked = data.analysis_only;
+                }
                 if (data.enable_lrc !== undefined) {
                     document.getElementById('enableLrc').checked = data.enable_lrc;
                 }
                 if (data.lrc_chars !== undefined && data.lrc_chars > 0) {
                     document.getElementById('lrcChars').value = data.lrc_chars;
+                }
+                if (data.delete_task_allocations !== undefined) {
+                    document.getElementById('deleteTaskAllocations').checked = data.delete_task_allocations;
+                }
+                if (data.delete_task_outputs !== undefined) {
+                    document.getElementById('deleteTaskOutputs').checked = data.delete_task_outputs;
+                }
+                if (data.delete_task_sources !== undefined) {
+                    document.getElementById('deleteTaskSources').checked = data.delete_task_sources;
+                }
+                if (data.ai_prompt_price_per_m !== undefined) {
+                    document.getElementById('aiPromptPricePerM').value = data.ai_prompt_price_per_m;
+                }
+                if (data.ai_completion_price_per_m !== undefined) {
+                    document.getElementById('aiCompletionPricePerM').value = data.ai_completion_price_per_m;
                 }
 
             } catch (e) {
@@ -1420,28 +1949,271 @@
         }
 
         // 任务轮询
+        function isAnalysisTaskRecord(task) {
+            if (task?.phase === 'analysis') return true;
+            if (task?.phase === 'synthesis') return false;
+            return !!(task && task.cli_config && task.cli_config.analysis_only)
+                || String(task?.file_name || '').startsWith('分析: ')
+                || String(task?.file_name || '').startsWith('鍒嗘瀽: ');
+        }
+
+        function isSynthesisBoundaryPausedTask(task) {
+            if (!task || task.status !== 'paused' || isAnalysisTaskRecord(task)) return false;
+            const msg = String(task.error_msg || '');
+            return msg.includes('继续分析') || msg.includes('未分析');
+        }
+
+        function promptContinueSynthesisBoundary(tasks) {
+            const boundaryTasks = tasks.filter(isSynthesisBoundaryPausedTask);
+            const boundaryIds = new Set(boundaryTasks.map(t => t.id));
+            synthesisBoundaryPromptedTaskIds.forEach(id => {
+                if (!boundaryIds.has(id)) synthesisBoundaryPromptedTaskIds.delete(id);
+            });
+
+            const task = boundaryTasks.find(t => !synthesisBoundaryPromptedTaskIds.has(t.id));
+            if (!task) return;
+
+            synthesisBoundaryPromptedTaskIds.add(task.id);
+            const message = `${task.file_name || '合成任务'} 已合成到当前分析进度。\n\n是否继续 AI 分析并同步合成后续章节？`;
+            setTimeout(() => {
+                if (confirm(message)) {
+                    continueSynthesisWithAnalysis(task.id);
+                } else {
+                    showToast('已暂停在分析进度边界，可稍后在任务列表继续。');
+                }
+            }, 0);
+        }
+
+        function taskBaseName(task) {
+            return String(task?.file_name || '')
+                .replace(/^分析:\s*/, '')
+                .replace(/^鍒嗘瀽:\s*/, '')
+                .trim();
+        }
+
+        function taskGroupKey(task) {
+            return String(task?.full_path || taskBaseName(task) || task?.id || '');
+        }
+
+        function phaseTaskFromUnified(task, phase) {
+            const phaseData = task?.[`${phase}_phase`];
+            if (!phaseData && task?.active_phase !== phase) return null;
+            const active = task?.active_phase === phase;
+            const data = active ? task : phaseData;
+            if (!data) return null;
+            return {
+                ...task,
+                id: task.id,
+                phase,
+                status: data.status || 'pending',
+                current: data.current || 0,
+                total: data.total || 0,
+                error_msg: data.error_msg || null,
+                start_time: data.start_time || null,
+                end_time: data.end_time || null,
+                size: data.size || 0,
+                eta: data.eta ?? null,
+                output_path: data.output_path || task.output_path || null,
+                cli_config: {
+                    ...(task.cli_config || {}),
+                    analysis_only: phase === 'analysis'
+                }
+            };
+        }
+
+        function taskStatusRank(status) {
+            return { error: 6, processing: 5, paused: 4, pending: 3, cancelled: 2, completed: 1 }[status] || 0;
+        }
+
+        function taskBadgeClass(status) {
+            if (status === 'processing') return 'bg-primary';
+            if (status === 'paused') return 'bg-warning';
+            if (status === 'completed') return 'bg-success';
+            if (status === 'error') return 'bg-danger';
+            if (status === 'cancelled') return 'bg-secondary';
+            return 'bg-secondary';
+        }
+
+        function buildTaskGroups(tasks) {
+            const groups = new Map();
+            tasks.forEach(task => {
+                const key = taskGroupKey(task);
+                if (!groups.has(key)) {
+                    groups.set(key, {
+                        id: key,
+                        file_name: taskBaseName(task),
+                        full_path: task.full_path,
+                        tasks: [],
+                        analysis: null,
+                        synthesis: null,
+                        status: task.status,
+                        created_at: task.created_at || 0
+                    });
+                }
+                const group = groups.get(key);
+                group.tasks.push(task);
+                group.created_at = Math.max(group.created_at || 0, task.created_at || 0);
+                if (!group.file_name) group.file_name = taskBaseName(task);
+                if (task.analysis_phase || task.synthesis_phase || task.active_phase) {
+                    const analysisPhase = phaseTaskFromUnified(task, 'analysis');
+                    const synthesisPhase = phaseTaskFromUnified(task, 'synthesis');
+                    if (analysisPhase) group.analysis = analysisPhase;
+                    if (synthesisPhase) group.synthesis = synthesisPhase;
+                } else if (isAnalysisTaskRecord(task)) group.analysis = task;
+                else group.synthesis = task;
+            });
+
+            return Array.from(groups.values()).map((group, index) => {
+                group.id = `group-${index}`;
+                group.primary = group.synthesis || group.analysis || group.tasks[0];
+                group.status = group.tasks
+                    .map(task => task.status)
+                    .sort((a, b) => taskStatusRank(b) - taskStatusRank(a))[0] || 'pending';
+                group.task_ids = group.tasks.map(task => task.id);
+                return group;
+            }).sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+        }
+
+        function groupMatchesStatus(group, status) {
+            return status === 'all' || group.tasks.some(task => task.status === status);
+        }
+
+        function groupSelected(group) {
+            return group.task_ids.length > 0 && group.task_ids.every(id => selectedTaskIds.has(id));
+        }
+
+        function phasePercent(task) {
+            return task && task.total > 0 ? Math.round((task.current / task.total) * 100) : 0;
+        }
+
+        function phaseEtaText(task) {
+            if (!task) return '';
+            if (task.status === 'paused') return ' | 已暂停';
+            if (task.status === 'processing' && task.eta !== null && task.eta !== undefined) {
+                const min = Math.floor(task.eta / 60);
+                const sec = task.eta % 60;
+                return ` | 预计剩余: ${min}分${sec}秒`;
+            }
+            return '';
+        }
+
+        function phaseProgressHtml(label, task) {
+            const status = task?.status || 'pending';
+            const percent = phasePercent(task);
+            const width = status === 'paused' ? 100 : percent;
+            const barClass = taskBadgeClass(status);
+            const current = task?.current || 0;
+            const total = task?.total || 0;
+            const text = task ? `${current} / ${total} 章节${phaseEtaText(task)}` : '未开始';
+            return `
+                <div class="task-phase mb-2">
+                    <div class="d-flex justify-content-between align-items-center" style="font-size: 0.75rem; color: #666;">
+                        <span>${label} · ${text}</span>
+                        <span>${percent}%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar ${barClass}${status === 'paused' ? ' progress-bar-striped progress-bar-animated' : ''}" role="progressbar" style="width: ${width}%"></div>
+                    </div>
+                </div>`;
+        }
+
+        function phaseActionButtons(task, phase, analysisTask) {
+            if (!task) return '';
+
+            const startLabel = phase === 'analysis' ? '开始分析' : '开始合成';
+            const pauseLabel = phase === 'analysis' ? '暂停分析' : '暂停合成';
+            if (task.status === 'pending') {
+                return `<button class="btn btn-sm btn-outline-success me-1" onclick="startTask('${task.id}', '${startLabel}')">${startLabel}</button>`;
+            }
+            if (task.status === 'processing') {
+                return `<button class="btn btn-sm btn-outline-warning me-1" onclick="pauseTask('${task.id}', '${pauseLabel}')">${pauseLabel}</button>`;
+            }
+            if (task.status === 'paused') {
+                const main = phase === 'synthesis' && isSynthesisBoundaryPausedTask(task)
+                    ? `<button class="btn btn-sm btn-outline-primary me-1" onclick="continueSynthesisWithAnalysis('${task.id}')">继续分析并合成</button>`
+                    : `<button class="btn btn-sm btn-outline-success me-1" onclick="resumeTask('${task.id}', '${startLabel}')">${startLabel}</button>`;
+                const synth = phase === 'analysis'
+                    ? `<button class="btn btn-sm btn-outline-primary me-1" onclick="startSynthesisFromTask('${task.id}')">开始合成</button>`
+                    : '';
+                return `${main}${synth}`;
+            }
+            if (task.status === 'completed' && phase === 'analysis') {
+                return `<button class="btn btn-sm btn-outline-primary me-1" onclick="startSynthesisFromTask('${task.id}')">开始合成</button>`;
+            }
+            if (task.status === 'error' || task.status === 'cancelled') {
+                return `<button class="btn btn-sm btn-outline-success me-1" onclick="startTask('${task.id}', '${startLabel}')">${startLabel}</button>`;
+            }
+            return '';
+        }
+
+        function groupActionButtons(group) {
+            const synthesisActive = group.synthesis && ['pending', 'processing', 'paused'].includes(group.synthesis.status);
+            const analysisButtons = synthesisActive || (group.analysis?.status === 'completed' && group.synthesis)
+                ? ''
+                : phaseActionButtons(group.analysis, 'analysis');
+            const cancelButton = group.tasks.some(task => ['pending', 'processing', 'paused'].includes(task.status))
+                ? `<button class="btn btn-sm btn-outline-danger me-1" onclick="cancelTaskGroup('${group.id}')">取消</button>`
+                : '';
+            return [
+                analysisButtons,
+                phaseActionButtons(group.synthesis, 'synthesis', group.analysis),
+                cancelButton
+            ].filter(Boolean).join('');
+        }
+
+        function groupTimeInfo(group) {
+            const tasks = group.tasks || [];
+            const starts = tasks.map(t => t.start_time).filter(Boolean);
+            const ends = tasks.map(t => t.end_time).filter(Boolean);
+            const formatTime = (ts) => ts ? new Date(ts * 1000).toLocaleTimeString() : '';
+            let info = '';
+            if (starts.length) info += `<span class="me-2" title="开始时间">▶ ${formatTime(Math.min(...starts))}</span>`;
+            if (ends.length) info += `<span title="结束时间">✓ ${formatTime(Math.max(...ends))}</span>`;
+            return info;
+        }
+
         async function updateTasks() {
+            if (isUpdatingTasks) {
+                pendingTasksRefresh = true;
+                return;
+            }
+            isUpdatingTasks = true;
             try {
                 const res = await fetch('/api/tasks');
                 const tasks = await res.json();
+                currentTasks = tasks;
                 const list = document.getElementById('taskList');
                 const card = document.getElementById('tasksCard');
-                
+
                 currentTasksMap = {}; // 重置映射
+                tasks.forEach(t => { currentTasksMap[t.id] = t; });
+                const taskGroups = buildTaskGroups(tasks);
+                currentTaskGroupsMap = {};
+                taskGroups.forEach(group => { currentTaskGroupsMap[group.id] = group; });
+                selectedTaskIds.forEach(id => {
+                    if (!currentTasksMap[id]) selectedTaskIds.delete(id);
+                });
+                syncAllocFileSelectFromTasks(tasks);
+                refreshLiveAllocation(tasks);
+                renderAllocationMultiSelect();
                 
                 card.style.display = 'block';
                 list.innerHTML = '';
 
-                if (tasks.length === 0) {
+                if (taskGroups.length === 0) {
+                    currentFilteredTasks = [];
                     list.innerHTML = '<div class="list-group-item text-center text-muted p-3">暂无任务记录</div>';
                     document.getElementById('taskCountBadge').innerText = '0/0';
+                    renderPagination(0);
+                    updateBatchUI();
                 } else {
                     let completed = 0;
                     
                     // 过滤
-                    const filteredTasks = tasks.filter(t => {
-                        const matchesSearch = t.file_name.toLowerCase().includes(currentSearchQuery.toLowerCase());
-                        const matchesStatus = currentStatusFilter === 'all' || t.status === currentStatusFilter;
+                    const filteredTasks = taskGroups.filter(t => {
+                        const taskName = String(t.file_name || '');
+                        const matchesSearch = taskName.toLowerCase().includes(currentSearchQuery.toLowerCase());
+                        const matchesStatus = groupMatchesStatus(t, currentStatusFilter);
                         return matchesSearch && matchesStatus;
                     });
                     currentFilteredTasks = filteredTasks;
@@ -1455,83 +2227,63 @@
                     const end = start + itemsPerPage;
                     const pageTasks = filteredTasks.slice(start, end);
 
-                    // 统计总完成数 (基于所有任务)
-                    tasks.forEach(t => { if(t.status === 'completed') completed++; });
+                    // 统计总完成数 (基于折叠后的小说任务)
+                    taskGroups.forEach(t => {
+                        if (t.tasks.length > 0 && t.tasks.every(task => task.status === 'completed')) completed++;
+                    });
                     
                     pageTasks.forEach(t => {
-                        currentTasksMap[t.id] = t; // 存储以便详情使用
-                        
-                        let badgeClass = 'bg-secondary';
-                        if(t.status === 'processing') badgeClass = 'bg-primary';
-                        if(t.status === 'completed') badgeClass = 'bg-success';
-                        if(t.status === 'error') badgeClass = 'bg-danger';
-                        
-                        let actionBtn = '';
-                        if(t.status === 'pending' || t.status === 'processing') {
-                            actionBtn = `<button class="btn btn-sm btn-outline-danger ms-2" onclick="cancelTask('${t.id}')">取消</button>`;
-                        } else if (t.status === 'error' || t.status === 'cancelled') {
-                            actionBtn = `<button class="btn btn-sm btn-outline-warning ms-2" onclick="retryTask('${t.id}')">重试</button>`;
-                        }
-                        
-                        let etaText = '';
-                        if (t.status === 'processing' && t.eta !== null && t.eta !== undefined) {
-                            const min = Math.floor(t.eta / 60);
-                            const sec = t.eta % 60;
-                            etaText = ` | 预计剩余: ${min}分${sec}秒`;
-                        }
+                        const badgeClass = taskBadgeClass(t.status);
+                        const safeStatus = escapeHtml(t.status || '');
+                        const actionBtn = groupActionButtons(t);
+                        const isChecked = groupSelected(t) ? 'checked' : '';
+                        const primaryId = (t.primary && t.primary.id) || t.task_ids[0] || '';
+                        const timeInfo = groupTimeInfo(t);
+                        const size = Math.max(...t.tasks.map(task => task.size || 0), 0);
 
-                        const formatSize = (bytes) => {
-                            if (bytes === 0 || !bytes) return '';
-                            const k = 1024;
-                            const sizes = ['B', 'KB', 'MB', 'GB'];
-                            const i = Math.floor(Math.log(bytes) / Math.log(k));
-                            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-                        };
-
-                        const formatTime = (ts) => ts ? new Date(ts * 1000).toLocaleTimeString() : '';
-                        let timeInfo = '';
-                        if (t.start_time) timeInfo += `<span class="me-2" title="开始时间">▶ ${formatTime(t.start_time)}</span>`;
-                        if (t.end_time) timeInfo += `<span title="结束时间">⏹ ${formatTime(t.end_time)}</span>`;
-
-                        const isChecked = selectedTaskIds.has(t.id) ? 'checked' : '';
-                        const percent = t.total > 0 ? Math.round((t.current / t.total) * 100) : 0;
-                        
                         const item = document.createElement('div');
                         item.className = 'list-group-item';
                         item.innerHTML = `
-                            <div class="d-flex w-100 justify-content-between align-items-center mb-1">
-                                <div class="d-flex align-items-center text-truncate" style="max-width: 60%;">
-                                    <input type="checkbox" class="form-check-input me-2 task-checkbox" value="${t.id}" ${isChecked} onchange="toggleTaskSelection('${t.id}')" onclick="event.stopPropagation()">
-                                    <span style="cursor: pointer; text-decoration: underline; color: var(--bs-link-color);" 
-                                         title="点击查看配置详情" onclick="showTaskDetails('${t.id}')">
-                                        ${t.file_name}
+                            <div class="d-flex w-100 justify-content-between align-items-center mb-1 task-row-main">
+                                <div class="d-flex align-items-center task-title-wrap">
+                                    <label class="task-select-hitbox" title="选择任务" onclick="event.stopPropagation()">
+                                        <input type="checkbox" class="form-check-input task-checkbox" value="${escapeAttr(t.id)}" ${isChecked} onchange="toggleTaskGroupSelection('${escapeAttr(t.id)}')" onclick="event.stopPropagation()">
+                                    </label>
+                                    <span class="task-title" style="cursor: pointer; text-decoration: underline; color: var(--bs-link-color);"
+                                         title="${escapeHtml(t.file_name || '')}" onclick="showTaskDetails('${primaryId}')">
+                                        ${escapeHtml(t.file_name || '')}
                                     </span>
                                 </div>
-                                <div>
-                                    <span class="badge ${badgeClass}">${t.status}</span>
+                                <div class="flex-shrink-0">
+                                    <span class="badge ${badgeClass}">${safeStatus}</span>
                                     ${actionBtn}
                                 </div>
                             </div>
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar ${badgeClass}" role="progressbar" style="width: ${percent}%"></div>
-                            </div>
+                            ${phaseProgressHtml('分析', t.analysis)}
+                            ${phaseProgressHtml('合成', t.synthesis)}
                             <div class="d-flex justify-content-between align-items-center" style="font-size: 0.75rem; color: #666;">
-                                <span>${t.current} / ${t.total} 章节${etaText}</span>
+                                <span>${t.full_path ? escapeHtml(t.full_path) : ''}</span>
                                 <span class="text-muted" style="font-size: 0.7rem;">${timeInfo}</span>
-                                <span class="badge bg-info text-dark" style="font-weight: normal; display: ${t.size ? 'inline-block' : 'none'}">${formatSize(t.size)}</span>
-                                <span>${percent}%</span>
+                                <span class="badge bg-info text-dark" style="font-weight: normal; display: ${size ? 'inline-block' : 'none'}">${formatSize(size)}</span>
                             </div>
                         `;
                         list.appendChild(item);
                     });
-                    document.getElementById('taskCountBadge').innerText = `${completed}/${tasks.length}`;
+                    document.getElementById('taskCountBadge').innerText = `${completed}/${taskGroups.length}`;
                     
                     // 渲染分页控件
                     renderPagination(totalPages);
                     updateBatchUI();
+                    promptContinueSynthesisBoundary(tasks);
                 }
             } catch(e) {
                 console.error("Fetch tasks error", e);
+            } finally {
+                isUpdatingTasks = false;
+                if (pendingTasksRefresh) {
+                    pendingTasksRefresh = false;
+                    setTimeout(updateTasks, 0);
+                }
             }
         }
 
@@ -1544,15 +2296,54 @@
             updateBatchUI();
         }
 
+        function toggleTaskGroupSelection(groupId) {
+            const group = currentTaskGroupsMap[groupId];
+            if (!group) return;
+            const shouldSelect = !groupSelected(group);
+            group.task_ids.forEach(id => {
+                if (shouldSelect) selectedTaskIds.add(id);
+                else selectedTaskIds.delete(id);
+            });
+            updateBatchUI();
+        }
+
+        async function cancelTaskGroup(groupId) {
+            const group = currentTaskGroupsMap[groupId];
+            if (!group) return;
+            const cancellable = group.tasks.filter(task => ['pending', 'processing', 'paused'].includes(task.status));
+            if (cancellable.length === 0) return;
+            if (!confirm(`确定要取消《${group.file_name || '该小说'}》的分析/合成任务吗？`)) return;
+            for (const task of cancellable) {
+                try {
+                    await fetch('/api/cancel_task', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: task.id })
+                    });
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+            updateTasks();
+        }
+
         function updateBatchUI() {
             const batchDiv = document.getElementById('batchActions');
-            batchDiv.style.display = selectedTaskIds.size > 0 ? 'inline-flex' : 'none';
+            const selectedCount = selectedTaskIds.size;
+            batchDiv.style.display = selectedCount > 0 ? 'inline-flex' : 'none';
+            const deleteBtn = document.getElementById('btnDeleteSelectedTasks');
+            if (deleteBtn) {
+                deleteBtn.disabled = selectedCount === 0 || isDeletingTasks;
+                deleteBtn.innerHTML = isDeletingTasks
+                    ? '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>删除中...'
+                    : `<i class="bi bi-trash"></i> 删除 ${selectedCount} 项`;
+            }
 
             const selectAllCb = document.getElementById('selectAllTasks');
-            if (currentFilteredTasks.length > 0 && currentFilteredTasks.every(t => selectedTaskIds.has(t.id))) {
+            if (currentFilteredTasks.length > 0 && currentFilteredTasks.every(groupSelected)) {
                 selectAllCb.checked = true;
                 selectAllCb.indeterminate = false;
-            } else if (currentFilteredTasks.some(t => selectedTaskIds.has(t.id))) {
+            } else if (currentFilteredTasks.some(t => t.task_ids.some(id => selectedTaskIds.has(id)))) {
                 selectAllCb.checked = false;
                 selectAllCb.indeterminate = true;
             } else {
@@ -1608,8 +2399,10 @@
         document.getElementById('selectAllTasks').addEventListener('change', (e) => {
             const checked = e.target.checked;
             currentFilteredTasks.forEach(t => {
-                if (checked) selectedTaskIds.add(t.id);
-                else selectedTaskIds.delete(t.id);
+                t.task_ids.forEach(id => {
+                    if (checked) selectedTaskIds.add(id);
+                    else selectedTaskIds.delete(id);
+                });
             });
             updateTasks();
         });
@@ -1687,32 +2480,156 @@
         }
 
         async function clearCompletedTasks() {
-            if(!confirm("确定要清除列表中所有已完成的任务吗？(不会删除文件)")) return;
+            if(!confirm("确定要隐藏所有已完成的任务吗？\n\n任务记录会被保留，只是从列表中隐藏。")) return;
             try {
                 await fetch('/api/clear_completed_tasks', { method: 'POST' });
-                updateTasks(); // 立即刷新
+                updateTasks();
             } catch(e) {
-                alert("清除失败: " + e);
+                alert("操作失败: " + e);
             }
         }
 
-        async function clearAllTasks() {
-            if(!confirm("⚠️ 警告：确定要清空所有任务记录吗？(不会删除已生成的文件)")) return;
+        function summarizeTaskDeleteResult(data) {
+            const parts = [];
+            if (Number.isFinite(data.deleted_tasks)) parts.push(`任务 ${data.deleted_tasks} 个`);
+            if (Number.isFinite(data.deleted_allocations)) parts.push(`分配表 ${data.deleted_allocations} 张`);
+            if (Number.isFinite(data.deleted_outputs)) parts.push(`输出 ${data.deleted_outputs} 项`);
+            if (Number.isFinite(data.deleted_sources)) parts.push(`源文件 ${data.deleted_sources} 个`);
+            const failed = [
+                ...(data.failed_allocation_paths || []),
+                ...(data.failed_output_paths || []),
+                ...(data.failed_source_paths || []),
+            ];
+            if (failed.length > 0) parts.push(`失败 ${failed.length} 项`);
+            return parts.length ? `删除完成：${parts.join('，')}` : (data.message || '删除完成');
+        }
+
+        function taskDeleteFailureDetails(data) {
+            const lines = [];
+            (data.failed_allocation_paths || []).forEach(path => lines.push(`分配表: ${path}`));
+            (data.failed_output_paths || []).forEach(path => lines.push(`输出: ${path}`));
+            (data.failed_source_paths || []).forEach(path => lines.push(`源文件: ${path}`));
+            return lines;
+        }
+
+        async function deleteSelectedTasks() {
+            if (isDeletingTasks) return;
+            const ids = Array.from(selectedTaskIds);
+            if (ids.length === 0) {
+                alert("请先勾选要删除的任务记录");
+                return;
+            }
+            const deleteAllocations = document.getElementById('deleteTaskAllocations')?.checked || false;
+            const deleteOutputs = document.getElementById('deleteTaskOutputs')?.checked || false;
+            const deleteSources = document.getElementById('deleteTaskSources')?.checked || false;
+            const requestedAllocPaths = deleteAllocations
+                ? ids.map(id => taskAllocPath(currentTasksMap[id])).filter(Boolean)
+                : [];
+            const allocationHint = deleteAllocations ? "会同步删除对应的角色声音分配表。" : "不会删除对应的角色声音分配表。";
+            const outputHint = deleteOutputs ? "会同步删除对应的输出目录或文件。" : "不会删除对应的输出文件。";
+            const sourceHint = deleteSources ? "会同步删除源文件。" : "不会删除源文件。";
+            if(!confirm(`确定要删除选中的 ${ids.length} 个任务记录吗？\n\n${sourceHint}${allocationHint}${outputHint}`)) return;
+            isDeletingTasks = true;
+            updateBatchUI();
             try {
-                await fetch('/api/clear_all_tasks', { method: 'POST' });
-                updateTasks();
+                const resp = await fetch('/api/delete_tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids, delete_allocations: deleteAllocations, delete_outputs: deleteOutputs, delete_sources: deleteSources })
+                });
+                const data = await resp.json();
+                if (!resp.ok || !data.success) {
+                    throw new Error(data.message || "删除失败");
+                }
+                selectedTaskIds.clear();
+                if (deleteAllocations) {
+                    const deletedAllocPaths = Array.isArray(data.deleted_allocation_paths)
+                        ? data.deleted_allocation_paths
+                        : requestedAllocPaths;
+                    applyDeletedAllocationPaths(deletedAllocPaths);
+                }
+                await updateTasks();
+                if (deleteAllocations) {
+                    await loadAllocFileList();
+                }
+                if (deleteOutputs || deleteSources) {
+                    await fmLoadFiles();
+                }
+                showToast(summarizeTaskDeleteResult(data));
+                const failures = taskDeleteFailureDetails(data);
+                if (failures.length > 0) {
+                    alert(`以下项目删除失败：\n\n${failures.join('\n')}`);
+                }
             } catch(e) {
-                alert("清空失败: " + e);
+                alert("删除失败: " + e);
+            } finally {
+                isDeletingTasks = false;
+                updateBatchUI();
             }
         }
 
-        async function resetHistory() {
-            if(!confirm("⚠️ 严重警告：这将清除所有任务记录（包括已完成的任务历史）。\n\n这意味着自动检测将重新扫描并处理所有文件！\n\n确定要继续吗？")) return;
+        async function pauseTask(id, label = '任务') {
             try {
-                await fetch('/api/reset_history', { method: 'POST' });
+                const res = await fetch('/api/pause_task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const data = await readApiResponse(res);
+                if (!data.success) throw new Error(data.message || '暂停失败');
+                showToast(`${label}已暂停`);
+                updateTasks();
+                setTimeout(syncTopTaskControls, 200);
+            } catch(e) {
+                alert(`${label}暂停失败: ` + e.message);
+            }
+        }
+
+        async function resumeTask(id, label = '任务') {
+            try {
+                const res = await fetch('/api/resume_task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const data = await readApiResponse(res);
+                if (!data.success) throw new Error(data.message || '开始失败');
+                showToast(`${label}已开始`);
+                setTimeout(() => rememberLatestTaskId(label.includes('分析') ? 'analysis' : 'synthesis'), 100);
+                updateTasks();
+                setTimeout(syncTopTaskControls, 200);
+            } catch(e) {
+                alert(`${label}失败: ` + e.message);
+            }
+        }
+
+        async function startTask(id, label = '任务') {
+            try {
+                const res = await fetch('/api/retry_task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const data = await readApiResponse(res);
+                if (!data.success) throw new Error(data.message || '开始失败');
+                showToast(`${label}已开始`);
+                setTimeout(() => rememberLatestTaskId(label.includes('分析') ? 'analysis' : 'synthesis'), 100);
+                updateTasks();
+                setTimeout(syncTopTaskControls, 200);
+            } catch(e) {
+                alert(`${label}失败: ` + e.message);
+            }
+        }
+
+        async function cancelAllTasks() {
+            if(!confirm("确定要取消所有等待中、处理中、已暂停的任务吗？\n\n不会删除源文件、输出文件或分配表。")) return;
+            try {
+                const res = await fetch('/api/stop', { method: 'POST' });
+                const data = await res.json().catch(() => ({}));
+                showToast(data.message || "已取消全部任务");
                 updateTasks();
             } catch(e) {
-                alert("重置失败: " + e);
+                alert("全部取消失败: " + e);
             }
         }
 
@@ -1729,6 +2646,97 @@
             }
         }
 
+        let latestAnalyzeTaskId = '';
+        let latestSynthesisTaskId = '';
+
+        async function rememberLatestTaskId(kind) {
+            try {
+                const res = await fetch('/api/tasks');
+                const tasks = await res.json();
+                const active = tasks
+                    .filter(t => ['pending', 'processing', 'paused'].includes(t.status))
+                    .filter(t => kind === 'analysis'
+                        ? String(t.file_name || '').startsWith('分析:')
+                        : !String(t.file_name || '').startsWith('分析:'))
+                    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+                if (active.length === 0) return '';
+                if (kind === 'analysis') {
+                    latestAnalyzeTaskId = active[0].id;
+                    document.getElementById('btnStopAnalyze').disabled = false;
+                } else {
+                    latestSynthesisTaskId = active[0].id;
+                    document.getElementById('btnStopSynthesis').disabled = false;
+                }
+                return active[0].id;
+            } catch (e) {
+                console.error("记录任务失败:", e);
+                return '';
+            }
+        }
+
+        async function syncTopTaskControls() {
+            try {
+                const res = await fetch('/api/tasks');
+                const tasks = await res.json();
+                const active = tasks.filter(t => ['pending', 'processing', 'paused'].includes(t.status));
+                const analysis = active
+                    .filter(t => String(t.file_name || '').startsWith('分析:'))
+                    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0];
+                const synthesis = active
+                    .filter(t => !String(t.file_name || '').startsWith('分析:'))
+                    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0];
+
+                const btnAnalyze = document.getElementById('btnAnalyze');
+                const btnStart = document.getElementById('btnStart');
+                const btnStopAnalyze = document.getElementById('btnStopAnalyze');
+                const btnStopSynthesis = document.getElementById('btnStopSynthesis');
+                const btnBatch = document.getElementById('btnBatchConvert');
+
+                latestAnalyzeTaskId = analysis ? analysis.id : '';
+                latestSynthesisTaskId = synthesis ? synthesis.id : '';
+
+                btnAnalyze.disabled = !!analysis;
+                btnAnalyze.innerText = analysis ? "分析中..." : "分析角色";
+                btnStopAnalyze.disabled = !analysis;
+                btnStart.disabled = !!synthesis;
+                btnStart.innerText = synthesis ? "处理中..." : "开始合成";
+                btnStopSynthesis.disabled = !synthesis;
+                btnBatch.disabled = !!synthesis;
+            } catch (e) {
+                console.error("同步任务按钮失败:", e);
+            }
+        }
+
+        async function cancelLatestTask(kind) {
+            const taskId = kind === 'analysis' ? latestAnalyzeTaskId : latestSynthesisTaskId;
+            if (!taskId) return alert("没有可停止的任务");
+            const label = kind === 'analysis' ? '分析' : '合成';
+            if (!confirm(`确定要停止当前${label}任务吗？`)) return;
+            try {
+                await fetch('/api/cancel_task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: taskId })
+                });
+                if (kind === 'analysis') {
+                    latestAnalyzeTaskId = '';
+                    document.getElementById('btnAnalyze').disabled = false;
+                    document.getElementById('btnAnalyze').innerText = "分析角色";
+                    document.getElementById('btnStopAnalyze').disabled = true;
+                } else {
+                    latestSynthesisTaskId = '';
+                    document.getElementById('btnStart').disabled = false;
+                    document.getElementById('btnStart').innerText = "开始合成";
+                    document.getElementById('btnStopSynthesis').disabled = true;
+                }
+                log(`已发送停止${label}请求。`);
+                updateTasks();
+                setTimeout(syncTopTaskControls, 200);
+            } catch (e) {
+                alert(`停止${label}失败: ` + e);
+            }
+        }
+
         async function retryTask(id) {
             if(!confirm("确定要重试此任务吗？")) return;
             try {
@@ -1739,6 +2747,46 @@
                 });
             } catch(e) {
                 alert("重试失败: " + e);
+            }
+        }
+
+        async function continueSynthesisWithAnalysis(id) {
+            try {
+                const res = await fetch('/api/retry_task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const data = await readApiResponse(res);
+                if (data.success === false) {
+                    alert('继续分析并合成失败: ' + (data.message || '未知错误'));
+                    return;
+                }
+                showToast('已继续分析并同步合成');
+                updateTasks();
+            } catch(e) {
+                alert('继续分析并合成失败: ' + e);
+            }
+        }
+
+        async function startSynthesisFromTask(id) {
+            try {
+                const res = await fetch('/api/task/start_synthesis', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const data = await readApiResponse(res);
+                if (data.success) {
+                    log("✅ " + data.message);
+                    setTimeout(() => rememberLatestTaskId('synthesis'), 100);
+                    setTimeout(updateTasks, 100);
+                    setTimeout(updateTasks, 700);
+                } else {
+                    alert("开始合成失败: " + (data.message || '未知错误'));
+                }
+            } catch(e) {
+                alert("开始合成失败: " + e);
             }
         }
 
@@ -1779,10 +2827,9 @@
         }
 
         async function retryAllFailed() {
-            if(!confirm("确定要重试所有失败或已取消的任务吗？")) return;
+            if(!confirm("确定要重试所有失败、已取消或已暂停的任务吗？")) return;
             try {
                 await fetch('/api/retry_all_failed', { method: 'POST' });
-                // 任务状态会在轮询中自动更新
             } catch(e) {
                 alert("请求失败: " + e);
             }
@@ -1792,19 +2839,24 @@
         const eventSource = new EventSource('/api/events');
         eventSource.onmessage = (event) => {
             const btnStart = document.getElementById('btnStart');
+            const btnAnalyze = document.getElementById('btnAnalyze');
             const btnBatch = document.getElementById('btnBatchConvert');
             const btnStop = document.getElementById('btnStop');
 
             const restoreButtons = () => {
+                btnAnalyze.disabled = false;
+                btnAnalyze.innerText = "分析角色";
                 btnStart.disabled = false;
                 btnStart.innerText = "开始合成";
                 btnBatch.disabled = false;
                 btnBatch.innerText = "开始批量转换";
                 btnStop.disabled = true;
+                syncTopTaskControls();
             };
 
             if (event.data === "__STATUS__:DONE" || event.data.startsWith("🛑 用户已手动停止")) {
                 restoreButtons();
+                loadAiUsageStats();
             }
             log(event.data);
         };
@@ -1830,7 +2882,17 @@
             setInput('speed', sysDefaults.speed);
             setInput('pitch', sysDefaults.pitch);
             setInput('concurrency', 4);
+            const aiRateLimitCooldown = document.getElementById('aiRateLimitCooldown');
+            if (aiRateLimitCooldown) aiRateLimitCooldown.value = 60;
+            const aiPromptPricePerM = document.getElementById('aiPromptPricePerM');
+            if (aiPromptPricePerM) aiPromptPricePerM.value = 0;
+            const aiCompletionPricePerM = document.getElementById('aiCompletionPricePerM');
+            if (aiCompletionPricePerM) aiCompletionPricePerM.value = 0;
             document.getElementById('preserveStructure').checked = false;
+            document.getElementById('analysisOnly').checked = false;
+            document.getElementById('deleteTaskAllocations').checked = false;
+            document.getElementById('deleteTaskOutputs').checked = false;
+            document.getElementById('deleteTaskSources').checked = false;
 
             setInput('volume_dialogue', sysDefaults.volume);
             setInput('speed_dialogue', sysDefaults.speed);
@@ -1866,15 +2928,26 @@
             }
         });
 
-        // 停止合成
+        // 暂停合成
         document.getElementById('btnStop').addEventListener('click', async () => {
-            if(!confirm("确定要停止当前任务吗？")) return;
+            if(!confirm("确定要暂停当前任务吗？")) return;
+            const btnStop = document.getElementById('btnStop');
             try {
-                await fetch('/api/stop', { method: 'POST' });
-                log("正在发送停止请求...");
+                await fetch('/api/pause_all', { method: 'POST' });
+                btnStop.disabled = true;
+                log("已发送暂停请求，可在任务列表中继续任务。");
+                updateTasks();
             } catch(e) {
-                log("❌ 无法发送停止请求: " + e);
+                log("❌ 无法发送暂停请求: " + e);
             }
+        });
+
+        document.getElementById('btnStopAnalyze').addEventListener('click', () => {
+            cancelLatestTask('analysis');
+        });
+
+        document.getElementById('btnStopSynthesis').addEventListener('click', () => {
+            cancelLatestTask('synthesis');
         });
 
         // 批量转换
@@ -1895,6 +2968,7 @@
             const sub = enableLrc ? lrcChars : 0;
             const ignoreRegex = document.getElementById('ignoreRegex').value;
             const preserveStructure = document.getElementById('preserveStructure').checked;
+            const analysisOnly = document.getElementById('analysisOnly').checked;
             const aiDialogue = getAiDialogueConfig();
 
             if (!voiceId) {
@@ -1930,13 +3004,17 @@
                         pitch_dialogue: pitchDialogue,
                         sub: sub,
                         preserve_structure: preserveStructure,
+                        analysis_only: analysisOnly,
                         ai_dialogue: aiDialogue
                     })
                 });
 
-                const data = await res.json();
+                const data = await readApiResponse(res);
                 if (data.success) {
                     log("✅ " + data.message);
+                    prepareAllocationAutoFollowForNewTask();
+                    setTimeout(updateTasks, 100);
+                    setTimeout(updateTasks, 700);
                 } else {
                     log("❌ 启动失败: " + data.message);
                     btn.disabled = false;
@@ -1956,46 +3034,507 @@
         // --- Voice Allocation Table ---
         let currentAllocTable = null;
         let currentAllocFilePath = '';
+        let currentAllocSignature = '';
+        let currentAllocDirty = false;
+        let allocAutoFollow = true;
+        let allocationListCache = [];
+        let allocationBookFilesCache = [];
+        let allocReviewFilter = 'all';
+        const deletedAllocationPaths = new Set();
+        const expandedAllocationPaths = new Set();
+        const selectedAllocationDeletePaths = new Set();
+
+        function taskAllocPath(task) {
+            return task && (task.allocation_path || task.full_path || (task.file_name ? 'book/' + task.file_name : ''));
+        }
+
+        function isSameAllocPath(a, b) {
+            if (!a || !b) return false;
+            const norm = value => String(value).replaceAll('\\', '/').replace(/^\/+/, '');
+            const na = norm(a);
+            const nb = norm(b);
+            return na === nb || na.endsWith('/' + nb) || nb.endsWith('/' + na);
+        }
+
+        function normalizeAllocPath(value) {
+            return String(value || '').replaceAll('\\', '/').replace(/^\/+/, '');
+        }
+
+        function isDeletedAllocPath(path) {
+            const normalized = normalizeAllocPath(path);
+            return Array.from(deletedAllocationPaths).some(deleted => isSameAllocPath(deleted, normalized));
+        }
+
+        function isExpandedAllocPath(path) {
+            const normalized = normalizeAllocPath(path);
+            return Array.from(expandedAllocationPaths).some(expanded => isSameAllocPath(expanded, normalized));
+        }
+
+        function isSelectedAllocationDeletePath(path) {
+            const normalized = normalizeAllocPath(path);
+            return Array.from(selectedAllocationDeletePaths).some(selected => isSameAllocPath(selected, normalized));
+        }
+
+        function removeSelectedAllocationDeletePath(path) {
+            const normalized = normalizeAllocPath(path);
+            Array.from(selectedAllocationDeletePaths).forEach(selected => {
+                if (isSameAllocPath(selected, normalized)) selectedAllocationDeletePaths.delete(selected);
+            });
+        }
+
+        function toggleAllocationDeleteSelection(filePath, checked) {
+            const normalized = normalizeAllocPath(filePath);
+            if (!normalized) return;
+            if (checked) {
+                selectedAllocationDeletePaths.add(String(filePath || ''));
+            } else {
+                removeSelectedAllocationDeletePath(normalized);
+            }
+        }
+
+        function toggleAllocationFileItem(filePath) {
+            const normalized = normalizeAllocPath(filePath);
+            if (!normalized) return;
+            if (isExpandedAllocPath(normalized)) {
+                Array.from(expandedAllocationPaths).forEach(path => {
+                    if (isSameAllocPath(path, normalized)) expandedAllocationPaths.delete(path);
+                });
+            } else {
+                expandedAllocationPaths.add(normalized);
+            }
+            renderAllocationMultiSelect();
+        }
+
+        function expandAllocationFileItem(filePath) {
+            const normalized = normalizeAllocPath(filePath);
+            if (!normalized) return;
+            expandedAllocationPaths.clear();
+            expandedAllocationPaths.add(normalized);
+        }
+
+        function collapseAllocationTable() {
+            expandedAllocationPaths.clear();
+            currentAllocTable = null;
+            currentAllocFilePath = '';
+            currentAllocSignature = '';
+            currentAllocDirty = false;
+            const sel = document.getElementById('allocFileSelect');
+            if (sel) sel.value = '';
+            document.getElementById('allocationContent').style.display = 'none';
+            renderAllocationMultiSelect();
+        }
+
+        function applyDeletedAllocationPaths(paths = []) {
+            const deletedPaths = (Array.isArray(paths) ? paths : []).filter(Boolean);
+            if (deletedPaths.length === 0) return;
+            deletedPaths.forEach(path => {
+                const normalized = normalizeAllocPath(path);
+                deletedAllocationPaths.add(normalized);
+                removeSelectedAllocationDeletePath(normalized);
+                Array.from(expandedAllocationPaths).forEach(expanded => {
+                    if (isSameAllocPath(expanded, normalized)) expandedAllocationPaths.delete(expanded);
+                });
+            });
+            allocationListCache = allocationListCache.filter(a => !deletedPaths.some(path => isSameAllocPath(path, a.file_path)));
+            if (deletedPaths.some(path => isSameAllocPath(path, currentAllocFilePath))) {
+                currentAllocTable = null;
+                currentAllocFilePath = '';
+                currentAllocSignature = '';
+                currentAllocDirty = false;
+                document.getElementById('allocationContent').style.display = 'none';
+            }
+            const sel = document.getElementById('allocFileSelect');
+            if (sel && deletedPaths.some(path => isSameAllocPath(path, sel.value))) {
+                sel.value = '';
+            }
+            renderAllocationMultiSelect();
+        }
+
+        function handleAllocationFileItemClick(filePath) {
+            if (isExpandedAllocPath(filePath) && isSameAllocPath(filePath, currentAllocFilePath)) {
+                collapseAllocationTable();
+                return;
+            }
+            expandAllocationFileItem(filePath);
+            viewAllocForTask(filePath);
+        }
+
+        function allocationSignature(table) {
+            return JSON.stringify((table && table.entries) || []) + '|' + ((table && table.generated_at) || 0);
+        }
+
+        function markAllocationDirty() {
+            currentAllocDirty = true;
+        }
+
+        function markAllocationEntryManual(idx) {
+            if (!currentAllocTable || !currentAllocTable.entries[idx]) return null;
+            const entry = currentAllocTable.entries[idx];
+            entry.source = 'manual';
+            entry.locked = true;
+            const lock = document.querySelector(`.alloc-lock[data-idx="${idx}"]`);
+            if (lock) lock.checked = true;
+            markAllocationDirty();
+            return entry;
+        }
+
+        function syncAllocationEditsFromDom() {
+            if (!currentAllocTable || !Array.isArray(currentAllocTable.entries)) return;
+            document.querySelectorAll('#allocationBody .alloc-voice-sel').forEach(sel => {
+                const idx = parseInt(sel.dataset.idx, 10);
+                const entry = currentAllocTable.entries[idx];
+                if (!entry) return;
+                entry.voice_id = sel.value || '';
+                if (sel.value) {
+                    entry.source = 'manual';
+                    entry.locked = true;
+                }
+            });
+            document.querySelectorAll('#allocationBody .alloc-param-input').forEach(input => {
+                const idx = parseInt(input.dataset.idx, 10);
+                const param = input.dataset.param;
+                const entry = currentAllocTable.entries[idx];
+                if (!entry || !param) return;
+                entry[param] = parseVoiceParam(input.value);
+            });
+            document.querySelectorAll('#allocationBody .alloc-alias-input').forEach(input => {
+                const idx = parseInt(input.dataset.idx, 10);
+                const entry = currentAllocTable.entries[idx];
+                if (!entry) return;
+                entry.aliases = input.value.split('|').map(s => s.trim()).filter(Boolean);
+            });
+            document.querySelectorAll('#allocationBody .alloc-lock').forEach(cb => {
+                const idx = parseInt(cb.dataset.idx, 10);
+                const entry = currentAllocTable.entries[idx];
+                if (!entry) return;
+                entry.locked = cb.checked;
+            });
+        }
+
+        function upsertAllocationListFromTable(table) {
+            if (!table || !table.file_path) return;
+            deletedAllocationPaths.delete(normalizeAllocPath(table.file_path));
+            const fileName = table.file_path.split(/[\\/]/).pop() || table.file_path;
+            const item = {
+                file_path: table.file_path,
+                file_name: fileName,
+                novel_title: table.novel_title || '',
+                entry_count: (table.entries || []).length,
+                generated_at: table.generated_at || 0,
+            };
+            const idx = allocationListCache.findIndex(a => isSameAllocPath(a.file_path, table.file_path));
+            if (idx >= 0) {
+                allocationListCache[idx] = { ...allocationListCache[idx], ...item };
+            } else {
+                allocationListCache.unshift(item);
+            }
+            const sel = document.getElementById('allocFileSelect');
+            if (sel) {
+                addAllocFileOption(sel, table.file_path, `${item.file_name} · 已有分配表`);
+                sel.value = table.file_path;
+            }
+        }
+
+        function prepareAllocationAutoFollowForNewTask() {
+            if (!document.getElementById('aiDialogueEnabled')?.checked) return;
+            allocAutoFollow = true;
+            currentAllocTable = null;
+            currentAllocFilePath = '';
+            currentAllocSignature = '';
+            currentAllocDirty = false;
+            document.getElementById('allocationCard').style.display = '';
+            document.getElementById('allocationContent').style.display = 'none';
+            const sel = document.getElementById('allocFileSelect');
+            if (sel) sel.value = '';
+        }
+
+        function refreshLiveAllocation(tasks = currentTasks) {
+            if (!document.getElementById('aiDialogueEnabled')?.checked || !Array.isArray(tasks) || tasks.length === 0) {
+                return;
+            }
+            if (currentAllocDirty) {
+                return;
+            }
+
+            const active = tasks
+                .filter(t => (t.status === 'processing' || t.status === 'pending') && taskAllocPath(t))
+                .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0];
+            if (active && allocAutoFollow && (!currentAllocFilePath || !isSameAllocPath(taskAllocPath(active), currentAllocFilePath))) {
+                const path = taskAllocPath(active);
+                const sel = document.getElementById('allocFileSelect');
+                if (sel) {
+                    addAllocFileOption(sel, path, `${active.file_name || path} · ${active.status}`);
+                    sel.value = path;
+                }
+                document.getElementById('allocationCard').style.display = '';
+                expandAllocationFileItem(path);
+                loadAllocationTable(path, true);
+                return;
+            }
+
+            if (currentAllocFilePath) {
+                const related = tasks.find(t => isSameAllocPath(taskAllocPath(t), currentAllocFilePath));
+                if (!related || related.status === 'processing' || related.status === 'completed') {
+                    loadAllocationTable(currentAllocFilePath, true);
+                }
+            }
+        }
+
+        function addAllocFileOption(sel, value, label) {
+            if (!sel || !value) return;
+            const existing = Array.from(sel.options).find(opt => opt.value === value);
+            if (existing) {
+                existing.text = label || existing.text || value;
+                return;
+            }
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.text = label || value;
+            sel.appendChild(opt);
+        }
+
+        function syncAllocFileSelectFromTasks(tasks = currentTasks) {
+            const sel = document.getElementById('allocFileSelect');
+            if (!sel || !Array.isArray(tasks)) return;
+            tasks.forEach(t => {
+                const path = t.allocation_path || t.full_path;
+                if (!path) return;
+                if (isDeletedAllocPath(path)) return;
+                const status = t.status ? ` · ${t.status}` : '';
+                addAllocFileOption(sel, path, `${t.file_name || path}${status}`);
+            });
+            if (currentAllocFilePath && Array.from(sel.options).some(opt => opt.value === currentAllocFilePath)) {
+                sel.value = currentAllocFilePath;
+            }
+        }
+
+        async function viewAllocForTask(filePath) {
+            allocAutoFollow = false;
+            expandAllocationFileItem(filePath);
+            const sel = document.getElementById('allocFileSelect');
+            const task = Object.values(currentTasksMap).find(t => (t.allocation_path || t.full_path) === filePath);
+            addAllocFileOption(sel, filePath, task ? `${task.file_name || filePath} · ${task.status || '任务'}` : filePath);
+            sel.value = filePath;
+            currentAllocFilePath = filePath;
+            document.getElementById('allocationCard').style.display = '';
+            await loadAllocationTable(filePath);
+            renderAllocationMultiSelect();
+            window.scrollTo({ top: document.getElementById('allocationCard').offsetTop - 80, behavior: 'smooth' });
+        }
+
+        function buildAllocationFileEntries(tasks = currentTasks, allocList = allocationListCache) {
+            const entries = [];
+            const seen = new Set();
+            const bookFiles = [];
+
+            const pushEntry = (entry) => {
+                const key = normalizeAllocPath(entry.file_path);
+                if (!key || seen.has(key) || isDeletedAllocPath(key)) return;
+                seen.add(key);
+                entries.push(entry);
+            };
+
+            (Array.isArray(allocList) ? allocList : []).forEach((a) => {
+                pushEntry({
+                    file_path: a.file_path,
+                    file_name: a.file_name || a.file_path,
+                    detail: `已保存分配表 · ${a.entry_count || 0} 条`,
+                    source: 'allocation',
+                    canDelete: true,
+                    isActive: isSameAllocPath(a.file_path, currentAllocFilePath),
+                });
+            });
+
+            (Array.isArray(tasks) ? tasks : []).forEach((t) => {
+                const path = taskAllocPath(t);
+                if (!path) return;
+                pushEntry({
+                    file_path: path,
+                    file_name: t.file_name || path,
+                    detail: `任务 · ${t.status || 'unknown'}`,
+                    source: 'task',
+                    canDelete: false,
+                    isActive: isSameAllocPath(path, currentAllocFilePath),
+                });
+            });
+
+            (Array.isArray(bookFiles) ? bookFiles : []).forEach((f) => {
+                const path = `book/${f.name}`;
+                pushEntry({
+                    file_path: path,
+                    file_name: f.name,
+                    detail: '/book 书籍文件',
+                    source: 'book',
+                    canDelete: false,
+                    isActive: isSameAllocPath(path, currentAllocFilePath),
+                });
+            });
+
+            if (currentAllocFilePath && !seen.has(normalizeAllocPath(currentAllocFilePath))) {
+                pushEntry({
+                    file_path: currentAllocFilePath,
+                    file_name: currentAllocFilePath.split('/').pop() || currentAllocFilePath,
+                    detail: '当前选择',
+                    source: 'selected',
+                    canDelete: false,
+                    isActive: true,
+                });
+            }
+
+            return entries;
+        }
+
+        function renderAllocationMultiSelect(list = buildAllocationFileEntries()) {
+            const box = document.getElementById('allocFileList');
+            if (!box) return;
+            if (!Array.isArray(list) || list.length === 0) {
+                box.innerHTML = '<div class="list-group-item text-muted small">暂无可选分配表</div>';
+                return;
+            }
+
+            box.innerHTML = list.map((item) => {
+                const active = item.isActive || isSameAllocPath(item.file_path, currentAllocFilePath);
+                const filePath = String(item.file_path || '');
+                const escapedFilePath = escapeAttr(filePath);
+                const title = escapeHtml(item.file_name || filePath || '');
+                const detail = escapeHtml(item.detail || '');
+                const expanded = isExpandedAllocPath(filePath);
+                const checked = isSelectedAllocationDeletePath(filePath) ? 'checked' : '';
+                const badgeClass = item.source === 'allocation'
+                    ? 'bg-success'
+                    : item.source === 'task'
+                        ? 'bg-primary'
+                        : item.source === 'book'
+                            ? 'bg-secondary'
+                            : 'bg-info';
+                const badgeText = item.source === 'allocation'
+                    ? '已保存'
+                    : item.source === 'task'
+                        ? '任务'
+                        : item.source === 'book'
+                            ? '/book'
+                            : '当前';
+
+                return `<div class="list-group-item list-group-item-action d-flex align-items-start gap-2 alloc-file-item${active ? ' active' : ''}" role="button" tabindex="0" data-file-path="${escapedFilePath}" onclick="handleAllocationFileItemClick(this.dataset.filePath)">
+                    ${item.canDelete ? `<input class="form-check-input alloc-delete-cb flex-shrink-0" type="checkbox" value="${escapedFilePath}" ${checked} onclick="event.stopPropagation()" onchange="toggleAllocationDeleteSelection(this.value, this.checked)">` : '<span class="flex-shrink-0" style="width: 1rem;"></span>'}
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex align-items-center justify-content-between gap-2">
+                            <span class="fw-semibold text-truncate alloc-file-meta"><span class="alloc-file-expand-icon me-1">${expanded ? '▼' : '▶'}</span>${title}</span>
+                            <span class="badge ${badgeClass} flex-shrink-0">${badgeText}</span>
+                        </div>
+                        <div class="small alloc-file-detail ${active ? 'text-white-50' : 'text-muted'}">${detail}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
 
         async function loadAllocFileList() {
             try {
-                const res = await fetch('/api/files/list?root=book');
-                const files = await res.json();
                 const sel = document.getElementById('allocFileSelect');
-                sel.innerHTML = '<option value="">-- 请选择文件 --</option>';
-                const bookDir = files.filter(f => !f.is_dir && (f.name.endsWith('.txt') || f.name.endsWith('.epub')));
-                bookDir.forEach(f => {
-                    const path = 'book/' + f.name;
-                    const opt = document.createElement('option');
-                    opt.value = path;
-                    opt.text = f.name;
-                    sel.appendChild(opt);
+                const previousValue = sel ? (sel.value || currentAllocFilePath) : currentAllocFilePath;
+                if (sel) sel.innerHTML = '<option value="">-- 请选择分配表/任务 --</option>';
+
+                const allocRes = await fetch('/api/allocations/list');
+                const allocList = await allocRes.json();
+                allocationListCache = (Array.isArray(allocList) ? allocList : []).filter(a => !isDeletedAllocPath(a.file_path));
+                Array.from(selectedAllocationDeletePaths).forEach(path => {
+                    if (!allocationListCache.some(a => isSameAllocPath(a.file_path, path))) {
+                        selectedAllocationDeletePaths.delete(path);
+                    }
                 });
-            } catch(e) {}
+                allocationListCache.forEach(a => {
+                    deletedAllocationPaths.delete(normalizeAllocPath(a.file_path));
+                    if (sel) addAllocFileOption(sel, a.file_path, `${a.file_name || a.file_path} · 已有分配表`);
+                });
+
+                syncAllocFileSelectFromTasks(currentTasks);
+
+                try {
+                    const filesRes = { json: async () => [] };
+                    const files = await filesRes.json();
+                    allocationBookFilesCache = Array.isArray(files)
+                        ? files.filter(f => !f.is_dir && (f.name.endsWith('.txt') || f.name.endsWith('.epub')))
+                        : [];
+                    allocationBookFilesCache.forEach(f => {
+                        const path = 'book/' + f.name;
+                        if (isDeletedAllocPath(path)) return;
+                        if (sel) addAllocFileOption(sel, path, `${f.name} · /book`);
+                    });
+                } catch (e) {
+                    allocationBookFilesCache = [];
+                }
+
+                renderAllocationMultiSelect();
+
+                if (sel && previousValue && Array.from(sel.options).some(opt => opt.value === previousValue)) {
+                    sel.value = previousValue;
+                }
+
+                updateTasks(); // trigger auto-load if current file has tasks
+            } catch (e) {}
         }
 
-        async function loadAllocationTable(filePath) {
+        async function loadAllocationTable(filePath, silent = false) {
+            if (!silent) allocAutoFollow = false;
+            if (silent && currentAllocDirty) return;
             if (!filePath) {
                 document.getElementById('allocationContent').style.display = 'none';
                 currentAllocTable = null;
                 currentAllocFilePath = '';
+                currentAllocSignature = '';
+                currentAllocDirty = false;
                 return;
             }
             currentAllocFilePath = filePath;
             try {
                 const res = await fetch(`/api/allocation/get?file_path=${encodeURIComponent(filePath)}`);
-                const data = await res.json();
+                const data = await readApiResponse(res);
                 if (data.found) {
+                    const signature = allocationSignature(data.table);
+                    if (silent && signature === currentAllocSignature) return;
+                    currentAllocSignature = signature;
                     currentAllocTable = data.table;
+                    currentAllocDirty = false;
+                    upsertAllocationListFromTable(data.table);
+                    renderAllocationMultiSelect();
                     renderAllocTable(data.table);
                 } else {
                     currentAllocTable = null;
+                    currentAllocSignature = '';
+                    currentAllocDirty = false;
                     document.getElementById('allocationContent').style.display = 'block';
-                    document.getElementById('allocationBody').innerHTML = '<tr><td colspan="5" class="text-muted text-center">尚未生成，点击"重新生成"</td></tr>';
+                    document.getElementById('allocationBody').innerHTML = '<tr><td colspan="11" class="text-muted text-center">尚未生成，点击"重新生成"</td></tr>';
                 }
             } catch(e) {
-                document.getElementById('allocationBody').innerHTML = `<tr><td colspan="5" class="text-danger">加载失败: ${e.message}</td></tr>`;
+                document.getElementById('allocationBody').innerHTML = `<tr><td colspan="11" class="text-danger">加载失败: ${e.message}</td></tr>`;
             }
+        }
+
+        function parseVoiceParam(value) {
+            const n = parseInt(value, 10);
+            if (!Number.isFinite(n)) return null;
+            return Math.max(0, Math.min(100, n));
+        }
+
+        function readVoiceParamInput(id, fallback = 50) {
+            const el = document.getElementById(id);
+            const parsed = el ? parseVoiceParam(el.value) : null;
+            return parsed === null ? fallback : parsed;
+        }
+
+        function renderAllocParamInput(param, idx, value, fallback, label) {
+            const parsed = parseVoiceParam(value);
+            const displayValue = parsed === null ? '' : parsed;
+            return '<input type="number" min="0" max="100" step="1" '
+                + 'class="form-control form-control-sm alloc-param-input" '
+                + 'data-idx="' + idx + '" data-param="' + param + '" '
+                + 'value="' + displayValue + '" placeholder="' + fallback + '" '
+                + 'title="' + label + '，留空则跟随对话/主参数" style="width: 4.8rem;">';
+        }
+
+        function setAllocReviewFilter(value) {
+            allocReviewFilter = value === 'pending' ? 'pending' : 'all';
+            if (currentAllocTable) renderAllocTable(currentAllocTable);
         }
 
         function renderAllocTable(table) {
@@ -2003,48 +3542,164 @@
             document.getElementById('allocNovelTitle').textContent = table.novel_title || '';
             const dt = new Date((table.generated_at || 0) * 1000);
             document.getElementById('allocGeneratedAt').textContent = dt.toLocaleString();
+            const filter = document.getElementById('allocReviewFilter');
+            if (filter && filter.value !== allocReviewFilter) filter.value = allocReviewFilter;
             const body = document.getElementById('allocationBody');
             if (!table.entries || table.entries.length === 0) {
-                body.innerHTML = '<tr><td colspan="5" class="text-muted text-center">暂无分配条目</td></tr>';
+                body.innerHTML = '<tr><td colspan="11" class="text-muted text-center">暂无分配条目</td></tr>';
                 return;
             }
-            body.innerHTML = table.entries.map((e, i) => {
+            const defaultVolume = readVoiceParamInput('volume_dialogue', readVoiceParamInput('volume', 50));
+            const defaultSpeed = readVoiceParamInput('speed_dialogue', readVoiceParamInput('speed', 50));
+            const defaultPitch = readVoiceParamInput('pitch_dialogue', readVoiceParamInput('pitch', 50));
+            const entriesWithIndexes = table.entries
+                .map((entry, index) => ({ entry, index }))
+                .filter(item => allocReviewFilter !== 'pending' || item.entry.needs_review);
+            if (entriesWithIndexes.length === 0) {
+                body.innerHTML = '<tr><td colspan="11" class="text-muted text-center">没有待确认条目</td></tr>';
+                return;
+            }
+            let html = '';
+            for (const { entry: e, index: i } of entriesWithIndexes) {
                 const srcLabels = { character_override: '角色覆盖', character_category: '分类分配', ai_inferred: 'AI推断', manual: '手动编辑' };
                 const srcLabel = srcLabels[e.source] || e.source;
-                const voiceOpts = availableVoices.map(v => `<option value="${v.id}" ${v.id === e.voice_id ? 'selected' : ''}>${v.name} (${v.id})</option>`).join('');
-                return `<tr>
-                    <td>${escapeHtml(e.character_name || '')}</td>
-                    <td><span class="badge bg-info">${escapeHtml(e.category_label || '-')}</span></td>
-                    <td><select class="form-select form-select-sm alloc-voice-sel" data-idx="${i}">${voiceOpts}</select></td>
-                    <td><span class="badge bg-secondary">${srcLabel}</span></td>
-                    <td><input type="checkbox" class="form-check-input alloc-lock" data-idx="${i}" ${e.locked ? 'checked' : ''}></td>
-                </tr>`;
-            }).join('');
-            // Wire change events and inject play buttons
-            document.querySelectorAll('.alloc-voice-sel').forEach(sel => {
-                sel.onchange = () => {
+                const voiceOpts = availableVoices.map(v => '<option value="' + v.id + '"' + (v.id === e.voice_id ? ' selected' : '') + '>' + escapeHtml(v.name) + ' (' + escapeHtml(v.id) + ')</option>').join('');
+                const aliases = (e.aliases || []).join('|');
+                const confidence = typeof e.confidence === 'number' ? Math.round(e.confidence * 100) : null;
+                const reviewText = e.needs_review
+                    ? '待确认'
+                    : (confidence === null ? '-' : `${confidence}%`);
+                const reviewClass = e.needs_review ? 'bg-warning text-dark' : 'bg-success';
+                const reviewTitle = escapeHtml(e.reason || (confidence === null ? '无识别置信度' : `置信度 ${confidence}%`));
+                const reviewCell = e.needs_review
+                    ? '<button class="btn btn-sm btn-warning alloc-confirm-btn" data-idx="' + i + '" title="' + reviewTitle + '">确认</button>'
+                    : '<span class="badge ' + reviewClass + '" title="' + reviewTitle + '">' + escapeHtml(reviewText) + '</span>';
+                html += '<tr>'
+                    + '<td>' + escapeHtml(e.character_name || '') + '</td>'
+                    + '<td><input type="text" class="form-control form-control-sm alloc-alias-input" data-idx="' + i + '" value="' + escapeAttr(aliases) + '" placeholder="-"></td>'
+                    + '<td><span class="badge bg-info">' + escapeHtml(e.category_label || '-') + '</span></td>'
+                    + '<td><select class="form-select form-select-sm alloc-voice-sel" data-idx="' + i + '">' + voiceOpts + '</select></td>'
+                    + '<td>' + renderAllocParamInput('volume', i, e.volume, defaultVolume, '音量') + '</td>'
+                    + '<td>' + renderAllocParamInput('speed', i, e.speed, defaultSpeed, '语速') + '</td>'
+                    + '<td>' + renderAllocParamInput('pitch', i, e.pitch, defaultPitch, '音调') + '</td>'
+                    + '<td>' + reviewCell + '</td>'
+                    + '<td><span class="badge bg-secondary">' + srcLabel + '</span></td>'
+                    + '<td><input type="checkbox" class="form-check-input alloc-lock" data-idx="' + i + '"' + (e.locked ? ' checked' : '') + '></td>'
+                    + '<td><button class="btn btn-sm btn-outline-danger alloc-delete-btn" data-idx="' + i + '">删除</button></td>'
+                    + '</tr>';
+            }
+            body.innerHTML = html;
+            // Wire change events and inject play buttons (must happen before click delegation)
+            body.querySelectorAll('.alloc-voice-sel').forEach(sel => {
+                sel.dataset.hasPlayBtn = '1';
+                sel.addEventListener('click', e => e.stopPropagation());
+                sel.onchange = (e) => {
+                    e.stopPropagation();
                     const idx = parseInt(sel.dataset.idx);
-                    if (currentAllocTable && currentAllocTable.entries[idx]) {
-                        currentAllocTable.entries[idx].voice_id = sel.value;
-                        currentAllocTable.entries[idx].source = 'manual';
+                    const entry = markAllocationEntryManual(idx);
+                    if (entry) {
+                        entry.voice_id = sel.value;
                     }
                 };
-                // Inject play button after each select via DOM
                 const btn = document.createElement('button');
                 btn.className = 'btn btn-sm btn-outline-secondary ms-1';
                 btn.title = '试听';
                 btn.textContent = '▶';
-                btn.onclick = function() { playVoicePreview(this.previousElementSibling); };
+                btn.onclick = function(e) {
+                    e.stopPropagation();
+                    playVoicePreview(this.previousElementSibling);
+                };
                 sel.insertAdjacentElement('afterend', btn);
             });
-            document.querySelectorAll('.alloc-lock').forEach(cb => {
-                cb.onchange = () => {
+            body.querySelectorAll('.alloc-param-input').forEach(input => {
+                input.addEventListener('click', e => e.stopPropagation());
+                input.addEventListener('input', e => {
+                    e.stopPropagation();
+                    const idx = parseInt(input.dataset.idx, 10);
+                    const param = input.dataset.param;
+                    const entry = markAllocationEntryManual(idx);
+                    if (!entry || !param) return;
+                    entry[param] = parseVoiceParam(input.value);
+                });
+                input.addEventListener('change', e => {
+                    e.stopPropagation();
+                    const idx = parseInt(input.dataset.idx, 10);
+                    const param = input.dataset.param;
+                    const entry = markAllocationEntryManual(idx);
+                    if (!entry || !param) return;
+                    entry[param] = parseVoiceParam(input.value);
+                    if (input.value !== '' && entry[param] !== null) {
+                        input.value = entry[param];
+                    }
+                });
+            });
+            body.querySelectorAll('.alloc-alias-input').forEach(input => {
+                input.addEventListener('click', e => e.stopPropagation());
+                input.addEventListener('input', e => {
+                    e.stopPropagation();
+                    const idx = parseInt(input.dataset.idx, 10);
+                    const entry = markAllocationEntryManual(idx);
+                    if (!entry) return;
+                    entry.aliases = input.value
+                        .split('|')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                });
+            });
+            body.querySelectorAll('.alloc-confirm-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const idx = parseInt(this.dataset.idx, 10);
+                    confirmAllocEntry(idx);
+                });
+            });
+            body.querySelectorAll('.alloc-lock').forEach(cb => {
+                cb.addEventListener('click', e => e.stopPropagation());
+                cb.onchange = (e) => {
+                    e.stopPropagation();
                     const idx = parseInt(cb.dataset.idx);
                     if (currentAllocTable && currentAllocTable.entries[idx]) {
                         currentAllocTable.entries[idx].locked = cb.checked;
+                        markAllocationDirty();
                     }
                 };
             });
+            // Delete button handlers
+            body.querySelectorAll('.alloc-delete-btn').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var idx = parseInt(this.dataset.idx);
+                    deleteAllocEntry(idx);
+                });
+            });
+        }
+
+        async function confirmAllocEntry(idx) {
+            if (!currentAllocTable) return;
+            const entry = currentAllocTable.entries[idx];
+            if (!entry) return;
+            const oldValue = !!entry.needs_review;
+            entry.needs_review = false;
+            renderAllocTable(currentAllocTable);
+            const saved = await saveAllocationTable();
+            if (!saved) {
+                entry.needs_review = oldValue;
+                renderAllocTable(currentAllocTable);
+            }
+        }
+
+        async function deleteAllocEntry(idx) {
+            if (!currentAllocTable) return;
+            const entry = currentAllocTable.entries[idx];
+            if (!entry) return;
+            if (!confirm(`确定删除角色「${entry.character_name || ''}」吗？`)) return;
+            const removed = currentAllocTable.entries.splice(idx, 1);
+            renderAllocTable(currentAllocTable);
+            const saved = await saveAllocationTable();
+            if (!saved) {
+                currentAllocTable.entries.splice(idx, 0, removed[0]);
+                renderAllocTable(currentAllocTable);
+            }
         }
 
         async function generateAllocationTable() {
@@ -2059,9 +3714,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ file_path: currentAllocFilePath, config })
                 });
-                const data = await res.json();
+                const data = await readApiResponse(res);
                 if (data.success) {
                     currentAllocTable = data.table;
+                    currentAllocSignature = allocationSignature(data.table);
+                    currentAllocDirty = false;
+                    upsertAllocationListFromTable(data.table);
+                    renderAllocationMultiSelect();
                     renderAllocTable(data.table);
                     showToast('分配表已生成');
                 } else {
@@ -2088,7 +3747,10 @@
                 btn.className = 'btn btn-sm btn-outline-secondary flex-shrink-0';
                 btn.title = '试听';
                 btn.textContent = '▶';
-                btn.onclick = function() { playVoicePreview(this.previousElementSibling); };
+                btn.onclick = function(e) {
+                    e.stopPropagation();
+                    playVoicePreview(this.previousElementSibling);
+                };
                 wrap.appendChild(btn);
             });
         }
@@ -2101,6 +3763,29 @@
             if (!voiceId) return;
             const apiUrl = document.getElementById('apiUrl').value.trim();
             if (!apiUrl) { showToast('请先设置 MultiTTS API 地址'); return; }
+            const isAllocVoice = selectEl.classList.contains('alloc-voice-sel');
+            const isDialogueVoice = selectEl.id === 'voice_dialogue_id';
+            let volume;
+            let speed;
+            let pitch;
+            if (isAllocVoice) {
+                const idx = parseInt(selectEl.dataset.idx, 10);
+                const entry = currentAllocTable && currentAllocTable.entries ? currentAllocTable.entries[idx] : null;
+                const fallbackVolume = readVoiceParamInput('volume_dialogue', readVoiceParamInput('volume', 50));
+                const fallbackSpeed = readVoiceParamInput('speed_dialogue', readVoiceParamInput('speed', 50));
+                const fallbackPitch = readVoiceParamInput('pitch_dialogue', readVoiceParamInput('pitch', 50));
+                volume = entry ? (parseVoiceParam(entry.volume) ?? fallbackVolume) : fallbackVolume;
+                speed = entry ? (parseVoiceParam(entry.speed) ?? fallbackSpeed) : fallbackSpeed;
+                pitch = entry ? (parseVoiceParam(entry.pitch) ?? fallbackPitch) : fallbackPitch;
+            } else if (isDialogueVoice) {
+                volume = readVoiceParamInput('volume_dialogue', readVoiceParamInput('volume', 50));
+                speed = readVoiceParamInput('speed_dialogue', readVoiceParamInput('speed', 50));
+                pitch = readVoiceParamInput('pitch_dialogue', readVoiceParamInput('pitch', 50));
+            } else {
+                volume = readVoiceParamInput('volume', 50);
+                speed = readVoiceParamInput('speed', 50);
+                pitch = readVoiceParamInput('pitch', 50);
+            }
             // Stop current playback
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
             // Visual feedback
@@ -2112,7 +3797,7 @@
                 const res = await fetch('/api/voice_preview', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ api_url: apiUrl, voice_id: voiceId })
+                    body: JSON.stringify({ api_url: apiUrl, voice_id: voiceId, volume, speed, pitch })
                 });
                 if (!res.ok) throw new Error(await res.text());
                 const blob = await res.blob();
@@ -2138,26 +3823,95 @@
         }
 
         async function saveAllocationTable() {
-            if (!currentAllocTable || !currentAllocFilePath) return;
-            const entries = currentAllocTable.entries || [];
-            let saved = 0;
-            for (const e of entries) {
+            if (!currentAllocTable || !currentAllocFilePath) return false;
+            syncAllocationEditsFromDom();
+            currentAllocTable.schema_version = currentAllocTable.schema_version || 2;
+            currentAllocTable.file_path = currentAllocFilePath;
+            try {
+                const res = await fetch('/api/allocation/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ table: currentAllocTable })
+                });
+                const data = await readApiResponse(res);
+                if (data.success) {
+                    currentAllocTable = data.table;
+                    currentAllocSignature = allocationSignature(data.table);
+                    currentAllocDirty = false;
+                    upsertAllocationListFromTable(data.table);
+                    renderAllocationMultiSelect();
+                    showToast(`已保存 ${currentAllocTable.entries?.length || 0} 条`);
+                    return true;
+                } else {
+                    showToast('保存失败: ' + (data.error || '未知错误'));
+                    return false;
+                }
+            } catch(ex) {
+                showToast('保存失败: ' + ex.message);
+                return false;
+            }
+        }
+
+        async function deleteAllocationTable() {
+            if (!currentAllocFilePath) return alert('请先选择分配表');
+            if (!confirm('确定删除当前整张角色声音分配表吗？这不会删除原书籍文件。')) return;
+            try {
+                const res = await fetch('/api/allocation/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_path: currentAllocFilePath })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    return showToast('删除失败: ' + (data.error || '未知错误'));
+                }
+                const deletedPath = currentAllocFilePath;
+                allocAutoFollow = false;
+                applyDeletedAllocationPaths([deletedPath]);
+                await loadAllocFileList();
+                showToast('分配表已删除');
+            } catch(ex) {
+                showToast('删除失败: ' + ex.message);
+            }
+        }
+
+        async function deleteSelectedAllocationTables() {
+            const selected = Array.from(selectedAllocationDeletePaths);
+            document.querySelectorAll('#allocFileList .alloc-delete-cb:checked').forEach(cb => {
+                if (cb.value && !selected.some(path => isSameAllocPath(path, cb.value))) {
+                    selected.push(cb.value);
+                }
+            });
+            if (selected.length === 0) return alert('请先勾选要删除的分配表');
+            if (!confirm(`确定删除选中的 ${selected.length} 张分配表吗？这不会删除原书籍文件。`)) return;
+            allocAutoFollow = false;
+
+            let deleted = 0;
+            const deletedPaths = [];
+            for (const filePath of selected) {
                 try {
-                    const res = await fetch('/api/allocation/update', {
+                    const res = await fetch('/api/allocation/delete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            file_path: currentAllocFilePath,
-                            character_name: e.character_name,
-                            voice_id: e.voice_id,
-                            locked: e.locked
-                        })
+                        body: JSON.stringify({ file_path: filePath })
                     });
                     const data = await res.json();
-                    if (data.success) saved++;
-                } catch(ex) {}
+                    if (data.success) {
+                        deleted++;
+                        deletedPaths.push(filePath);
+                    } else {
+                        showToast(`删除失败: ${filePath} - ${data.error || '未知错误'}`);
+                    }
+                } catch(ex) {
+                    showToast(`删除失败: ${filePath} - ${ex.message}`);
+                }
             }
-            showToast(`已保存 ${saved}/${entries.length} 条`);
+            applyDeletedAllocationPaths(deletedPaths);
+            deletedPaths.forEach(path => removeSelectedAllocationDeletePath(path));
+            const sel = document.getElementById('allocFileSelect');
+            if (sel) sel.value = '';
+            await loadAllocFileList();
+            showToast(`已删除 ${deleted}/${selected.length} 张分配表`);
         }
 
         // Show allocation card when AI is enabled
@@ -2178,11 +3932,11 @@
         function updateAutoRunButton() {
             const btn = document.getElementById('btnAutoRun');
             if (isAutoRun) {
-                btn.innerText = "🤖 停止自动检测";
+                btn.innerHTML = '<i class="bi bi-robot"></i> 停止自动检测';
                 btn.classList.remove('btn-outline-success');
                 btn.classList.add('btn-success');
             } else {
-                btn.innerText = "🤖 开启自动检测";
+                btn.innerHTML = '<i class="bi bi-robot"></i> 开启自动检测';
                 btn.classList.remove('btn-success');
                 btn.classList.add('btn-outline-success');
             }
@@ -2208,6 +3962,7 @@
                     sub: document.getElementById('enableLrc').checked ? parseInt(document.getElementById('lrcChars').value) : 0,
                     ignore_regex: document.getElementById('ignoreRegex').value,
                     preserve_structure: document.getElementById('preserveStructure').checked,
+                    analysis_only: document.getElementById('analysisOnly').checked,
                     ai_dialogue: getAiDialogueConfig()
                 };
             }
@@ -2251,9 +4006,9 @@
             
             const btn = document.getElementById('btnPreview');
             const btnDownload = document.getElementById('btnDownloadPreview');
-            const originalText = btn.innerText;
+            const originalHtml = btn.innerHTML;
             btn.disabled = true;
-            btn.innerText = "生成中...";
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>生成中...';
             btnDownload.style.display = 'none';
             
             const audioPlayer = document.getElementById('audioPreview');
@@ -2303,7 +4058,92 @@
                 alert("网络错误: " + e);
             } finally {
                 btn.disabled = false;
-                btn.innerText = originalText;
+                btn.innerHTML = originalHtml;
+            }
+        });
+
+        // 分析角色
+        document.getElementById('btnAnalyze').addEventListener('click', async () => {
+            const ignoreRegex = document.getElementById('ignoreRegex').value;
+            const analysisOnly = document.getElementById('analysisOnly').checked;
+            const aiDialogue = getAiDialogueConfig();
+            const isTextMode = document.getElementById('text-tab').classList.contains('active');
+            const isFileMode = document.getElementById('file-tab').classList.contains('active');
+            const isUploadMode = document.getElementById('upload-tab').classList.contains('active');
+
+            if (isTextMode) return alert("角色分析请使用文件路径或上传文件");
+            if (!aiDialogue.enabled || !aiDialogue.api_url || !aiDialogue.api_key || !aiDialogue.model) {
+                return alert("请先启用并填写 AI 对话识别配置");
+            }
+            let analyzeFilePath = null;
+            let analyzeUploadFile = null;
+            if (isUploadMode) {
+                const fileInput = document.getElementById('uploadFile');
+                if (fileInput.files.length === 0) return alert("请选择要上传的文件");
+                analyzeUploadFile = fileInput.files[0];
+            } else if (isFileMode) {
+                analyzeFilePath = document.getElementById('filePath').value;
+                if (!analyzeFilePath) return alert("请输入文件路径");
+            }
+
+            const btn = document.getElementById('btnAnalyze');
+            const btnStart = document.getElementById('btnStart');
+            const btnBatch = document.getElementById('btnBatchConvert');
+            const btnStop = document.getElementById('btnStop');
+            const btnStopAnalyze = document.getElementById('btnStopAnalyze');
+            btn.disabled = true;
+            btnBatch.disabled = true;
+            btn.innerText = "分析中...";
+            btnStopAnalyze.disabled = false;
+            btnStop.disabled = false;
+
+            log("▶️ 开始发送角色分析任务...");
+
+            try {
+                let res;
+                if (isUploadMode) {
+                    const formData = new FormData();
+                    formData.append('file', analyzeUploadFile);
+                    formData.append('ignore_regex', ignoreRegex);
+                    formData.append('ai_dialogue', JSON.stringify(aiDialogue));
+                    res = await fetch('/api/analyze_book_upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else if (isFileMode) {
+                    res = await fetch('/api/analyze_book', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            file_path: analyzeFilePath,
+                            ignore_regex: ignoreRegex,
+                            ai_dialogue: aiDialogue
+                        })
+                    });
+                }
+
+                const data = await readApiResponse(res);
+                if (data.success) {
+                    log("✅ " + data.message);
+                    setTimeout(() => rememberLatestTaskId('analysis'), 100);
+                    prepareAllocationAutoFollowForNewTask();
+                    setTimeout(updateTasks, 100);
+                    setTimeout(updateTasks, 700);
+                } else {
+                    log("❌ 启动失败: " + data.message);
+                    btn.disabled = false;
+                    btnBatch.disabled = false;
+                    btn.innerText = "分析角色";
+                    btnStopAnalyze.disabled = true;
+                    btnStop.disabled = true;
+                }
+            } catch (e) {
+                log("❌ 网络或服务器错误: " + e);
+                btn.disabled = false;
+                btnBatch.disabled = false;
+                btn.innerText = "分析角色";
+                btnStopAnalyze.disabled = true;
+                btnStop.disabled = true;
             }
         });
 
@@ -2325,6 +4165,7 @@
             const lrcChars = parseInt(document.getElementById('lrcChars').value);
             const sub = enableLrc ? lrcChars : 0;
             const ignoreRegex = document.getElementById('ignoreRegex').value;
+            const analysisOnly = document.getElementById('analysisOnly').checked;
             const aiDialogue = getAiDialogueConfig();
             
             const isTextMode = document.getElementById('text-tab').classList.contains('active');
@@ -2354,13 +4195,17 @@
             const btn = document.getElementById('btnStart');
             const btnBatch = document.getElementById('btnBatchConvert');
             const btnStop = document.getElementById('btnStop');
+            const btnStopAnalyze = document.getElementById('btnStopAnalyze');
+            const btnStopSynthesis = document.getElementById('btnStopSynthesis');
             
             btn.disabled = true;
             btnBatch.disabled = true;
             btn.innerText = "处理中...";
+            btnStopAnalyze.disabled = !analysisOnly;
+            btnStopSynthesis.disabled = analysisOnly;
             btnStop.disabled = false;
             
-            log("▶️ 开始发送合成任务...");
+            log(analysisOnly ? "▶️ 开始发送分析任务..." : "▶️ 开始发送合成任务...");
 
             try {
                 let res;
@@ -2379,6 +4224,7 @@
                     formData.append('file', uploadFile);
                     formData.append('sub', sub);
                     formData.append('ignore_regex', ignoreRegex);
+                    formData.append('analysis_only', analysisOnly ? 'true' : 'false');
                     formData.append('ai_dialogue', JSON.stringify(aiDialogue));
                     
                     res = await fetch('/api/synthesize_upload', {
@@ -2403,19 +4249,26 @@
                             sub: sub,
                             concurrency: concurrency,
                             ignore_regex: ignoreRegex,
+                            analysis_only: analysisOnly,
                             ai_dialogue: aiDialogue
                         })
                     });
                 }
                 
-                const data = await res.json();
+                const data = await readApiResponse(res);
                 if(data.success) {
                     log("✅ " + data.message);
+                    setTimeout(() => rememberLatestTaskId(analysisOnly ? 'analysis' : 'synthesis'), 100);
+                    prepareAllocationAutoFollowForNewTask();
+                    setTimeout(updateTasks, 100);
+                    setTimeout(updateTasks, 700);
                 } else {
                     log("❌ 启动失败: " + data.message);
                     btn.disabled = false;
                     btnBatch.disabled = false;
                     btn.innerText = "开始合成";
+                    btnStopAnalyze.disabled = true;
+                    btnStopSynthesis.disabled = true;
                     btnStop.disabled = true;
                 }
             } catch(e) {
@@ -2423,6 +4276,8 @@
                 btn.disabled = false;
                 btnBatch.disabled = false;
                 btn.innerText = "开始合成";
+                btnStopAnalyze.disabled = true;
+                btnStopSynthesis.disabled = true;
                 btnStop.disabled = true;
             } 
         });
@@ -2430,9 +4285,36 @@
         // --- 文件管理器逻辑 ---
         let fmCurrentRoot = 'book';
         let fmCurrentPath = '';
+        let fmCurrentAudioPath = '';
+
+        function fmPathFor(name) {
+            return fmCurrentPath ? `${fmCurrentPath}/${name}` : name;
+        }
+
+        function fmDownloadUrl(path, inline = false) {
+            const suffix = inline ? '&inline=true' : '';
+            return `/api/files/download?root=${fmCurrentRoot}&path=${encodeURIComponent(path)}${suffix}`;
+        }
+
+        function fmIsAudioFile(name) {
+            return /\.(wav|mp3|m4a|aac|ogg|oga|flac|webm)$/i.test(name || '');
+        }
+
+        function fmIsBookFile(name) {
+            return /\.(txt|epub)$/i.test(name || '');
+        }
+
+        function fmEscapeJs(value) {
+            return String(value || '')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/\r/g, '\\r')
+                .replace(/\n/g, '\\n');
+        }
 
         document.querySelectorAll('input[name="fmRoot"]').forEach(el => {
             el.addEventListener('change', (e) => {
+                fmStopAudio();
                 fmCurrentRoot = e.target.value;
                 fmCurrentPath = ''; // 切换根目录时重置路径
                 // 只有 book 目录允许上传
@@ -2474,21 +4356,33 @@
 
                 files.forEach(f => {
                     const tr = document.createElement('tr');
-                    const icon = f.is_dir ? '<i class="bi bi-folder-fill text-warning"></i>' : '<i class="bi bi-file-earmark-text text-secondary"></i>';
+                    const isAudio = !f.is_dir && fmIsAudioFile(f.name);
+                    const icon = f.is_dir
+                        ? '<i class="bi bi-folder-fill text-warning"></i>'
+                        : isAudio
+                            ? '<i class="bi bi-file-earmark-music text-primary"></i>'
+                            : '<i class="bi bi-file-earmark-text text-secondary"></i>';
                     const size = f.is_dir ? '-' : formatSize(f.size);
                     const date = new Date(f.modified * 1000).toLocaleString();
+                    const escapedName = escapeHtml(f.name);
+                    const escapedNameJs = fmEscapeJs(f.name);
                     const nameLink = f.is_dir 
-                        ? `<a href="#" onclick="event.preventDefault(); fmNavigate('${f.name}')" class="fw-bold text-decoration-none text-dark">${f.name}</a>`
-                        : f.name;
+                        ? `<a href="#" onclick="event.preventDefault(); fmNavigate('${escapedNameJs}')" class="fw-bold text-decoration-none text-dark">${escapedName}</a>`
+                        : escapedName;
                     
-                    const downloadBtn = !f.is_dir ? `<a href="/api/files/download?root=${fmCurrentRoot}&path=${encodeURIComponent((fmCurrentPath ? fmCurrentPath + '/' : '') + f.name)}" class="btn btn-sm btn-link p-0 me-2" title="下载"><i class="bi bi-download"></i></a>` : '';
-                    const deleteBtn = `<button class="btn btn-sm btn-link p-0 text-danger" onclick="fmDelete('${f.name}')" title="删除"><i class="bi bi-trash"></i></button>`;
+                    const filePath = fmPathFor(f.name);
+                    const playBtn = isAudio ? `<button class="btn btn-sm btn-link p-0 me-2 fm-audio-btn" onclick="fmPlayAudio('${escapedNameJs}', this)" title="播放"><i class="bi bi-play-fill"></i></button>` : '';
+                    const convertBtn = (!f.is_dir && fmCurrentRoot === 'book' && fmIsBookFile(f.name))
+                        ? `<button class="btn btn-sm btn-link p-0 me-2 text-success" onclick="fmStartConvert('${escapedNameJs}')" title="开始转换"><i class="bi bi-play-circle"></i></button>`
+                        : '';
+                    const downloadBtn = !f.is_dir ? `<a href="${fmDownloadUrl(filePath)}" class="btn btn-sm btn-link p-0 me-2" title="下载"><i class="bi bi-download"></i></a>` : '';
+                    const deleteBtn = `<button class="btn btn-sm btn-link p-0 text-danger" onclick="fmDelete('${escapedNameJs}')" title="删除"><i class="bi bi-trash"></i></button>`;
 
                     tr.innerHTML = `
                         <td>${icon} ${nameLink}</td>
                         <td>${size}</td>
                         <td>${date}</td>
-                        <td class="text-end">${downloadBtn}${deleteBtn}</td>
+                        <td class="text-end">${convertBtn}${playBtn}${downloadBtn}${deleteBtn}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -2498,12 +4392,14 @@
         }
 
         function fmNavigate(dirName) {
+            fmStopAudio();
             fmCurrentPath = fmCurrentPath ? `${fmCurrentPath}/${dirName}` : dirName;
             fmLoadFiles();
         }
 
         function fmNavigateUp() {
             if (!fmCurrentPath) return;
+            fmStopAudio();
             const parts = fmCurrentPath.split('/');
             parts.pop();
             fmCurrentPath = parts.join('/');
@@ -2530,9 +4426,81 @@
             document.getElementById('uploadTargetDir').innerText = '/' + fmCurrentPath;
         }
 
+        function fmStartConvert(name) {
+            if (fmCurrentRoot !== 'book') return;
+            const filePath = `book/${fmPathFor(name)}`;
+            const fileInput = document.getElementById('filePath');
+            fileInput.value = filePath;
+            const fileTab = document.getElementById('file-tab');
+            if (window.bootstrap && bootstrap.Tab) {
+                bootstrap.Tab.getOrCreateInstance(fileTab).show();
+            } else {
+                fileTab.click();
+            }
+            document.getElementById('btnStart').click();
+        }
+
+        function fmPlayAudio(name, btn) {
+            const path = fmPathFor(name);
+            const panel = document.getElementById('fmAudioPanel');
+            const player = document.getElementById('fmAudioPlayer');
+            const title = document.getElementById('fmAudioTitle');
+
+            if (fmCurrentAudioPath === path && !player.paused) {
+                player.pause();
+                if (btn) btn.innerHTML = '<i class="bi bi-play-fill"></i>';
+                return;
+            }
+
+            document.querySelectorAll('.fm-audio-btn').forEach(el => {
+                el.innerHTML = '<i class="bi bi-play-fill"></i>';
+                el.title = '播放';
+            });
+
+            fmCurrentAudioPath = path;
+            title.textContent = name;
+            panel.style.display = '';
+            player.src = fmDownloadUrl(path, true);
+            player.play().then(() => {
+                if (btn) {
+                    btn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+                    btn.title = '暂停';
+                }
+            }).catch(e => {
+                showToast('播放失败: ' + e.message);
+            });
+
+            player.onpause = () => {
+                document.querySelectorAll('.fm-audio-btn').forEach(el => {
+                    el.innerHTML = '<i class="bi bi-play-fill"></i>';
+                    el.title = '播放';
+                });
+            };
+            player.onended = player.onpause;
+        }
+
+        function fmStopAudio() {
+            const player = document.getElementById('fmAudioPlayer');
+            const panel = document.getElementById('fmAudioPanel');
+            if (player) {
+                player.pause();
+                player.removeAttribute('src');
+                player.load();
+            }
+            if (panel) panel.style.display = 'none';
+            fmCurrentAudioPath = '';
+            document.querySelectorAll('.fm-audio-btn').forEach(el => {
+                el.innerHTML = '<i class="bi bi-play-fill"></i>';
+                el.title = '播放';
+            });
+        }
+
         async function fmDelete(name) {
             if (!confirm(`确定要删除 "${name}" 吗？此操作不可恢复！`)) return;
-            const fullPath = fmCurrentPath ? `${fmCurrentPath}/${name}` : name;
+            const fullPath = fmPathFor(name);
+            if (fullPath === fmCurrentAudioPath) {
+                fmStopAudio();
+            }
             try {
                 const res = await fetch('/api/files/delete', {
                     method: 'POST',

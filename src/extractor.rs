@@ -18,7 +18,8 @@ pub struct Book {
 }
 
 pub fn extract_text(path: &Path) -> Result<Book> {
-    let extension = path.extension()
+    let extension = path
+        .extension()
         .and_then(|e| e.to_str())
         .map(|s| s.to_lowercase())
         .unwrap_or_default();
@@ -32,10 +33,15 @@ pub fn extract_text(path: &Path) -> Result<Book> {
 
 fn extract_txt(path: &Path) -> Result<Book> {
     let content = fs::read_to_string(path).context(format!("无法读取文件内容: {:?}", path))?;
-    let book_title = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
-    
+    let book_title = path
+        .file_stem()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
     let mut chapters = Vec::new();
-    let chapter_regex = Regex::new(r"(?m)^\s*第[0-9零一二三四五六七八九十百千万]+[章回卷节].*").unwrap();
+    let chapter_regex =
+        Regex::new(r"(?m)^\s*第[0-9零一二三四五六七八九十百千万]+[章回卷节].*").unwrap();
 
     let mut current_title = "序章/开始".to_string();
     let mut current_content = String::new();
@@ -88,14 +94,21 @@ fn extract_txt(path: &Path) -> Result<Book> {
 
 fn extract_epub(path: &Path) -> Result<Book> {
     let mut doc = EpubDoc::new(path).map_err(|e| anyhow!("打开 EPUB 文件失败: {}", e))?;
-    
-    let title = doc.metadata.iter()
+
+    let title = doc
+        .metadata
+        .iter()
         .find(|item| item.property == "title")
         .map(|item| item.value.clone())
-        .unwrap_or_else(|| path.file_stem().unwrap_or_default().to_string_lossy().to_string());
+        .unwrap_or_else(|| {
+            path.file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+        });
 
     let cover = doc.get_cover();
-    
+
     let mut chapters = Vec::new();
     let num_chapters = doc.get_num_chapters();
 
@@ -103,11 +116,14 @@ fn extract_epub(path: &Path) -> Result<Book> {
         if doc.set_current_chapter(i) {
             if let Some((content, _)) = doc.get_current_str() {
                 let text = html2text::from_read(content.as_bytes(), 9999);
-                if text.trim().is_empty() { continue; }
+                if text.trim().is_empty() {
+                    continue;
+                }
 
                 let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
                 let final_title = if let Some(first_line) = lines.first() {
-                    if first_line.len() < 50 { // 标题长度限制放宽一些
+                    if first_line.len() < 50 {
+                        // 标题长度限制放宽一些
                         first_line.trim().to_string()
                     } else {
                         format!("第 {} 节", i + 1)
@@ -123,7 +139,7 @@ fn extract_epub(path: &Path) -> Result<Book> {
             }
         }
     }
-    
+
     if chapters.is_empty() {
         return Err(anyhow!("未从 EPUB 中提取到任何文本"));
     }

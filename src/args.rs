@@ -1,9 +1,9 @@
 // src/args.rs
 
-use clap::Parser;
-use std::path::PathBuf;
-use serde::{Serialize, Deserialize};
 use crate::ai::AiDialogueConfig;
+use clap::Parser;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 /// BaiTTS-CLI-rs: 基于 MultiTTS API 的文本转有声书命令行工具 (支持 txt, epub)
 #[derive(Parser, Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +32,11 @@ pub struct Cli {
     /// [可选] 指定输出目录
     #[arg(short, long, value_name = "OUTPUT_DIR", default_value = "output")]
     pub out: PathBuf,
+
+    /// Override book/task name used for the output subdirectory.
+    #[arg(skip)]
+    #[serde(default)]
+    pub output_name: Option<String>,
 
     /// [可选] 指定要使用的声音 ID
     #[arg(long)]
@@ -85,6 +90,11 @@ pub struct Cli {
     #[arg(long, default_value_t = false)]
     #[serde(default)]
     pub preserve_structure: bool,
+
+    /// Analyze dialogues and allocation only; do not synthesize audio.
+    #[arg(skip)]
+    #[serde(default)]
+    pub analysis_only: bool,
 
     /// AI dialogue speaker assignment config.
     #[arg(skip)]

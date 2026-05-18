@@ -1,13 +1,13 @@
 // src/main.rs
 
-mod api;
 mod ai;
+mod api;
 mod args;
 mod extractor;
 mod lrc;
 mod process;
-mod utils;
 mod server;
+mod utils;
 
 use anyhow::Result;
 use args::Cli;
@@ -54,13 +54,35 @@ async fn main() -> Result<()> {
     }
 
     if let Some(file_path) = &args.file {
-        process::process_file(file_path, &args, &client, &blacklist_regex, |event| {
-            if let process::ProcessEvent::Log(msg) = event { println!("{}", msg); }
-        }, || async { false }, None).await?;
+        process::process_file(
+            file_path,
+            &args,
+            &client,
+            &blacklist_regex,
+            |event| {
+                if let process::ProcessEvent::Log(msg) = event {
+                    println!("{}", msg);
+                }
+            },
+            || async { false },
+            || async {},
+            None,
+        )
+        .await?;
     } else if let Some(dir_path) = &args.dir {
-        process::process_directory(dir_path, &args, &client, &blacklist_regex, |event| {
-            if let process::ProcessEvent::Log(msg) = event { println!("{}", msg); }
-        }).await?;
+        process::process_directory(
+            dir_path,
+            &args,
+            &client,
+            &blacklist_regex,
+            |event| {
+                if let process::ProcessEvent::Log(msg) = event {
+                    println!("{}", msg);
+                }
+            },
+            || async {},
+        )
+        .await?;
     } else {
         // 如果没有匹配到任何操作模式 (但这实际上会被 clap 拦截，或者上面检查过了)
         println!("请使用 --help 查看使用说明");
